@@ -56,27 +56,10 @@ if __name__ == "__main__":
             file_lines = file_lines.replace(x.group(0), substitution)
             x = infile_pattern.search(file_lines)
             if x is not None:
-                print("AFTER: ",x.group(0))
+                print("AFTER: ", x.group(0))
             else: 
                 print("match after substitution is empty")
             with open(filename, 'w') as f:
                 f.write(file_lines)
         else:
             print("no match in file")
-        
-
-def replace(file_path, pattern, subst):
-    """
-    stack overflow sourced
-    https://stackoverflow.com/questions/39086/search-and-replace-a-line-in-a-file-in-python
-    """
-    #Create temp file
-    fh, abs_path = mkstemp()
-    with fdopen(fh,'w') as new_file:
-        with open(file_path) as old_file:
-            for line in old_file:
-                new_file.write(line.replace(pattern, subst))
-    #Remove original file
-    # remove(file_path)
-    #Move new file
-    move(abs_path, file_path)
