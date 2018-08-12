@@ -19,7 +19,7 @@ typedef struct oommf_config{
     char tcl_path[MAX_CONF_TEXT_LEN];
     int core_count;
     int nodes;  
-    PM_LIST pm;
+    PM_LIST pm[MAX_PARAMETER_NUMBER];
 } OOMMF_CONFIG;
 
 

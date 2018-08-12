@@ -63,7 +63,6 @@ int queue_script_writer(OOMMF_CONFIG *conf_spec){
 int oommf_config_reader(const char * const config_file, OOMMF_CONFIG *o_conf){
     const cJSON *name, *params = NULL;
     
-    PM_LIST pm_list[MAX_PARAMETER_NUMBER];
     int status = 0;
 
     cJSON *config_json = cJSON_Parse(config_file);
@@ -116,10 +115,10 @@ int oommf_config_reader(const char * const config_file, OOMMF_CONFIG *o_conf){
     if (cJSON_IsArray(params) && params->child != NULL)
     {   
         int param_length;
-        parse_parameter_list(params->child, pm_list, &param_length);
+        parse_parameter_list(params->child, o_conf->pm, &param_length);
         for (int i = 0; i < param_length; i++){
-            printf("%s: %s to %s by %s\n", pm_list[i].param_name, 
-                    pm_list[i].start, pm_list[i].stop, pm_list[i].step);
+            printf("%s: %s to %s by %s\n", o_conf->pm[i].param_name, 
+                    o_conf->pm[i].start, o_conf->pm[i].stop, o_conf->pm[i].step);
         }
     }
     else perror("parameter list is not an array");
