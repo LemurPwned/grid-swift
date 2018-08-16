@@ -4,43 +4,42 @@
 
 #include "ssh_conn.h"
 
-// int main(int argc, char const *argv[])
-// {
-//     ssh_session grid_session;
-//     unsigned char *hash = NULL;
-//     ssh_key srv_pubkey = NULL;
-//     size_t hlen;
-//     char buf[10];
-//     char *hexa;
-//     char *p;
-//     int cmp;
-//     int rc;
-//     int port = 22;
-//     int verbosity = SSH_LOG_PROTOCOL;
+int establish_ssh_connection(const char *username, const char *server_address){
+    ssh_session grid_session;
+    unsigned char *hash = NULL;
+    ssh_key srv_pubkey = NULL;
+    size_t hlen;
+    char buf[10];
+    char *hexa;
+    char *p;
+    int cmp;
+    int rc;
+    int port = 22;
+    int verbosity = SSH_LOG_PROTOCOL;
 
-//     grid_session = ssh_new();
-//     if (grid_session == NULL) exit(-1);
-//     ssh_options_set(grid_session, SSH_OPTIONS_HOST, "192.168.57.131");
-//     ssh_options_set(grid_session, SSH_OPTIONS_USER, "lemur");
-//     ssh_options_set(grid_session, SSH_OPTIONS_LOG_VERBOSITY, &verbosity);
-//     ssh_options_set(grid_session, SSH_OPTIONS_PORT, &port);
+    grid_session = ssh_new();
+    if (grid_session == NULL) exit(-1);
+    ssh_options_set(grid_session, SSH_OPTIONS_HOST, server_address);
+    ssh_options_set(grid_session, SSH_OPTIONS_USER, username);
+    ssh_options_set(grid_session, SSH_OPTIONS_LOG_VERBOSITY, &verbosity);
+    ssh_options_set(grid_session, SSH_OPTIONS_PORT, &port);
 
-//     rc = ssh_connect(grid_session);
-//     // verify_server(grid_session);
-//     if (rc != SSH_OK){
-//     fprintf(stderr, "Error connecting to localhost: %s\n",
-//             ssh_get_error(grid_session));
-//     exit(-1);
-//     }
+    rc = ssh_connect(grid_session);
+    // verify_server(grid_session);
+    if (rc != SSH_OK){
+    fprintf(stderr, "Error connecting to localhost: %s\n",
+            ssh_get_error(grid_session));
+    exit(-1);
+    }
 
-//     int pass_res = authenticate_password(grid_session);
-//     const char* command = "ls -la";
-//     show_remote_processes(grid_session, command);
+    int pass_res = authenticate_password(grid_session);
+    const char* command = "ls -la";
+    show_remote_processes(grid_session, command);
 
-//     ssh_disconnect(grid_session);
-//     ssh_free(grid_session);
-//     return 0;
-// }
+    ssh_disconnect(grid_session);
+    ssh_free(grid_session);
+    return 0;
+}
 
 int authenticate_password(ssh_session session)
 {
@@ -115,4 +114,11 @@ int show_remote_processes(ssh_session session, const char *cmd)
   ssh_channel_close(channel);
   ssh_channel_free(channel);
   return SSH_OK;
+}
+
+int scp_file(char *filename, char *user, char *server, char *remote_dir){
+  char command[200];
+  sprintf(command, "scp %s %s@%s:%s", filename, username, server, remote_dir);
+  system(command);
+  return 0;
 }

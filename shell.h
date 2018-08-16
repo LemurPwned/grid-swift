@@ -1,3 +1,4 @@
+#include "cJSON.h"
 
 #define MAX_CONF_TEXT_LEN 100
 #define MAX_PARAMETER_NUMBER 5
@@ -25,3 +26,7 @@ typedef struct oommf_config{
 
 
 int queue_script_writer(struct oommf_config *conf_spec);
+int oommf_task_executor(char *config_file);
+int parse_parameter_list(const cJSON *parameter_list, PM_LIST pm_list[], int *param_length);
+int oommf_config_reader(const char *config_file, OOMMF_CONFIG *o_conf);
+char *readFile(char *fileName);

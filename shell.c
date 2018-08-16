@@ -2,17 +2,24 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "cJSON.h"
-
 #include "shell.h"
+#include "ssh_conn.h"
 
-int oommf_task_executor(struct oommf_config *conf_spec){
-    queue_script_writer(conf_spec);
+int oommf_task_executor(char *config_file){
+    // define config struct
+    const char *filename = readFile(config_file);
+    OOMMF_CONFIG omf_conf;
+    oommf_config_reader(filename, &omf_conf);
+    printf("%s, %s, %d, %s\n", omf_conf.name, omf_conf.remote_output_dir, omf_conf.core_count, 
+                            omf_conf.walltime); 
+    queue_script_writer(&omf_conf);
+    scp_file("testfile.pbs", omf_conf.username, omf_conf.server, omf_conf.remote_output_dir);
+    
     // upload the file to the queue system along with the scripts
     return 0;
 }
 
-int parse_parameter_list(const cJSON *parameter_list, PM_LIST pm_list[], int *param_length){
+int parse_parameter_list(const cJSON *parameter_list, PM_LIST pm_list[], intle *param_length){
     int iterator = 0;
     while (parameter_list){
         cJSON *name = cJSON_GetObjectItem(parameter_list, "name");
@@ -60,7 +67,7 @@ int queue_script_writer(OOMMF_CONFIG *conf_spec){
     return 0;
 }
 
-int oommf_config_reader(const char * const config_file, OOMMF_CONFIG *o_conf){
+int oommf_config_reader(const char *config_file, OOMMF_CONFIG *o_conf){
     const cJSON *name, *params = NULL;
     
     int status = 0;
@@ -126,8 +133,7 @@ int oommf_config_reader(const char * const config_file, OOMMF_CONFIG *o_conf){
     return status;
 }
 
-char *readFile(char *fileName)
-{
+char *readFile(char *fileName){
     FILE *file = fopen(fileName, "r");
     char *filetext;
     size_t n = 0;
@@ -145,16 +151,3 @@ char *readFile(char *fileName)
     return filetext;
 }
 
-int main(int argc, char const *argv[])
-{
-    /* code */
-    const char *filename = readFile("conf.json");
-
-    // define config struct
-    OOMMF_CONFIG omf_conf;
-    oommf_config_reader(filename, &omf_conf);
-    printf("%s, %s, %d, %s\n", omf_conf.name, omf_conf.remote_output_dir, omf_conf.core_count, 
-                            omf_conf.walltime); 
-    queue_script_writer(&omf_conf);
-    return 0;
-}
