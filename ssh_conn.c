@@ -118,7 +118,7 @@ int show_remote_processes(ssh_session session, const char *cmd)
 
 int scp_file(char *filename, char *user, char *server, char *remote_dir){
   char command[200];
-  sprintf(command, "scp %s %s@%s:%s", filename, username, server, remote_dir);
+  sprintf(command, "scp %s %s@%s:%s", filename, user, server, remote_dir);
   system(command);
   return 0;
 }

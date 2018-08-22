@@ -31,7 +31,6 @@ static struct argp_option options[] = {
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     struct arguments *arguments = state->input;
-    // printf("KEY %s", key);
     switch (key) {
     case 0x100: arguments->server = arg; break;
     case 's': arguments->simtype = arg; break;
