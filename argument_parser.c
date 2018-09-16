@@ -4,6 +4,7 @@
 #include <argp.h>
 
 #include "shell.h"
+#include "ssh_conn.h"
 
 #define MAX_ARGUMENT_STR_LEN 200
 
@@ -59,12 +60,15 @@ int main(int argc, char **argv)
     struct arguments arguments;
     // default options
     arguments.simtype = "o";
-    arguments.username = "lemur";
+    arguments.username = "root";
     arguments.conf_file = "conf.json";
     arguments.server = "localhost";
 
     argp_parse(&argp, argc, argv, 0, 0, &arguments);
     printf("READ PARAMETERS: %s, %s, %s\n", arguments.username, arguments.server, arguments.conf_file);
     oommf_task_executor(arguments.conf_file);
+    printf("Copying file...\n");
+    // upload the file to the queue system along with the scripts
+    scp_file("testfile.pbs", arguments.username, arguments.server, "~/sim-dir");
     return 0;
 }

@@ -6,9 +6,9 @@
 typedef struct parameter_sweep
 {
     char param_name[MAX_CONF_TEXT_LEN];
-    char start[MAX_CONF_TEXT_LEN];
-    char stop[MAX_CONF_TEXT_LEN];
-    char step[MAX_CONF_TEXT_LEN];
+    double start;
+    double stop;
+    double step;
 } PM_LIST;
 
 typedef struct oommf_config
@@ -32,4 +32,5 @@ int queue_script_writer(struct oommf_config *conf_spec);
 int oommf_task_executor(char *config_file);
 int parse_parameter_list(const cJSON *parameter_list, PM_LIST pm_list[], int *param_length);
 int oommf_config_reader(const char *config_file, OOMMF_CONFIG *o_conf);
+int compose_parameter_combinations(PM_LIST *pm, int parameter_number);
 char *readFile(char *fileName);

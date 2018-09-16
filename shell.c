@@ -3,10 +3,62 @@
 #include <string.h>
 
 #include "shell.h"
-#include "ssh_conn.h"
 
 #define STR_CONF_ELEMENTS 6
 #define NUM_CONF_ELEMENTS 3
+
+int compose_parameter_combinations(PM_LIST pm[], int parameter_number)
+{
+    /* 
+    combine set 1 with set 2 as set 12, then combine set 12 with set 3 as set123 etc.
+    in general: set 1...N combination set N+1 gives all set combinations for N+1 sets.
+    */
+
+    // firstly fill the lists with parameters (unravel the structure)
+    double **pm_numerical_list;
+    pm_numerical_list = malloc(parameter_number * sizeof(double *));
+    for (int i = 0; i < parameter_number; i++)
+    {
+        double diff = pm[i].stop - pm[i].start;
+        int result = (int)(diff / pm[i].step);
+        double mod = diff - (double)(result)*pm[i].step;
+        double list_len = mod == 0.0
+                              ? diff + 1
+                              : diff / pm[i].step;
+        pm_numerical_list[i] = malloc(list_len * sizeof(double));
+
+        for (int j = 0; j < list_len; j++)
+        {
+            pm_numerical_list[i][j] = pm[i].start + j * pm[i].step;
+        }
+    }
+
+    // now combinations
+    // fistly allocate for string param list
+
+    char *param_list_string;
+    for (int i = 0; i < parameter_number - 1; i++)
+    {
+        // now we merge param i' with param i+i
+        size_t n1 = sizeof(pm_numerical_list[i]) / sizeof(pm_numerical_list[i][0]);
+        size_t n2 = sizeof(pm_numerical_list[i + 1]) / sizeof(pm_numerical_list[i + 1][0]);
+
+        for (int k = 0; k < n1; k++)
+        {
+            for (int j = 0; j < n2; j++)
+            {
+            }
+        }
+    }
+
+    // char parameter_strings[parameter_number * parameter_number][MAX_CONF_TEXT_LEN];
+    // for (int i = 0; i < parameter_number; i++)
+    // {
+
+    // }
+
+    return 0;
+}
 
 int oommf_task_executor(char *config_file)
 {
@@ -18,10 +70,7 @@ int oommf_task_executor(char *config_file)
            omf_conf->walltime);
 
     // for every set of parameters make a string and create as separate simulation file
-    // queue_script_writer(omf_conf);
-    // scp_file("testfile.pbs", omf_conf.username, omf_conf.server, omf_conf.remote_output_dir);
-
-    // upload the file to the queue system along with the scripts
+    queue_script_writer(omf_conf);
     return 0;
 }
 
@@ -40,27 +89,27 @@ int parse_parameter_list(const cJSON *parameter_list, PM_LIST pm_list[], int *pa
             perror("{\"name\"} parameter not found in conf.json/parameter_list");
         }
         cJSON *start = cJSON_GetObjectItemCaseSensitive(parameter_list, "start");
-        if (start != NULL)
+        if (cJSON_IsNumber(start))
         {
-            strcpy(pm_list[iterator].start, start->valuestring);
+            pm_list[iterator].start = start->valueint;
         }
         else
         {
             perror("{\"start\"} parameter not found in conf.json/parameter_list");
         }
         cJSON *stop = cJSON_GetObjectItemCaseSensitive(parameter_list, "stop");
-        if (stop != NULL)
+        if (cJSON_IsNumber(stop))
         {
-            strcpy(pm_list[iterator].stop, stop->valuestring);
+            pm_list[iterator].stop = stop->valuedouble;
         }
         else
         {
             perror("{\"stop\"} parameter not found in conf.json/parameter_list");
         }
         cJSON *step = cJSON_GetObjectItemCaseSensitive(parameter_list, "step");
-        if (step != NULL)
+        if (cJSON_IsNumber(step))
         {
-            strcpy(pm_list[iterator].step, step->valuestring);
+            pm_list[iterator].step = step->valuedouble;
         }
         else
         {
@@ -218,7 +267,7 @@ int oommf_config_reader(const char *config_file, OOMMF_CONFIG *o_conf)
         o_conf->parameter_number = param_length;
         for (int i = 0; i < param_length; i++)
         {
-            printf("%s: %s to %s by %s\n", o_conf->pm[i].param_name,
+            printf("%s: %g to %g by %g\n", o_conf->pm[i].param_name,
                    o_conf->pm[i].start, o_conf->pm[i].stop, o_conf->pm[i].step);
         }
     }
