@@ -2,6 +2,7 @@
 
 #define MAX_CONF_TEXT_LEN 100
 #define MAX_PARAMETER_NUMBER 5
+#define DELIMITER "/"
 
 typedef struct parameter_sweep
 {
@@ -28,9 +29,13 @@ typedef struct oommf_config
     PM_LIST pm[MAX_PARAMETER_NUMBER];
 } OOMMF_CONFIG;
 
-int queue_script_writer(struct oommf_config *conf_spec);
+int queue_script_writer(OOMMF_CONFIG *conf_spec, char filepath[], char parameter_string[]);
 int oommf_task_executor(char *config_file);
 int parse_parameter_list(const cJSON *parameter_list, PM_LIST pm_list[], int *param_length);
 int oommf_config_reader(const char *config_file, OOMMF_CONFIG *o_conf);
-int compose_parameter_combinations(PM_LIST *pm, int parameter_number);
+int compose_parameter_combinations(PM_LIST pm[], int parameter_number, int total_combinations,
+                                   char **param_list_string, double **pm_numerical_list,
+                                   int pm_step_nums[]);
 char *readFile(char *fileName);
+void remove_spaces(const char *input, char *result);
+void create_dir(char directory_path[]);

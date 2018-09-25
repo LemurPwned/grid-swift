@@ -1,23 +1,23 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <errno.h>
 
 #include "shell.h"
 
 #define STR_CONF_ELEMENTS 6
 #define NUM_CONF_ELEMENTS 3
 
-int compose_parameter_combinations(PM_LIST pm[], int parameter_number)
+int fill_numerical_parameter_arrays(double **pm_numerical_list,
+                                    int pm_step_nums[],
+                                    PM_LIST pm[], int parameter_number)
 {
-    /* 
-    combine set 1 with set 2 as set 12, then combine set 12 with set 3 as set123 etc.
-    in general: set 1...N combination set N+1 gives all set combinations for N+1 sets.
-    */
-
-    // firstly fill the lists with parameters (unravel the structure)
-    double **pm_numerical_list;
-    pm_numerical_list = malloc(parameter_number * sizeof(double *));
-    int pm_step_nums[parameter_number];
+    // fill the lists with parameters (unravel the structure)
+    // total possible combinations is a simple cartesian products
     int total_combinations = 0;
     for (int i = 0; i < parameter_number; i++)
     {
@@ -39,19 +39,30 @@ int compose_parameter_combinations(PM_LIST pm[], int parameter_number)
             printf("%g\n", pm_numerical_list[i][j]);
         }
         pm_step_nums[i] = number_of_steps;
+        // avoid consequent multiplicatiion by zero
         total_combinations = (total_combinations == 0) ? number_of_steps : total_combinations * number_of_steps;
     }
+    return total_combinations;
+}
+int compose_parameter_combinations(PM_LIST pm[], int parameter_number, int total_combinations,
+                                   char **param_list_string, double **pm_numerical_list,
+                                   int pm_step_nums[])
+{
+    /* 
+    combine set 1 with set 2 as set 12, then combine set 12 with set 3 as set123 etc.
+    in general: set 1...N combination set N+1 gives all set combinations for N+1 sets.
+    */
 
     // now combinations
-    // fistly allocate for string param list
     printf("Total combinations detected: %d\n", total_combinations);
-    char param_list_string[total_combinations][MAX_CONF_TEXT_LEN];
-    bzero(param_list_string, sizeof(param_list_string));
+    // firstly allocate for string param list, zero it out
     char tmp_buffer[MAX_CONF_TEXT_LEN];
     for (int i = 0; i < parameter_number; i++)
     {
         for (int j = 0; j < total_combinations; j++)
         {
+            if (i == 0) // malloc if first in the loop
+                param_list_string[j] = malloc(MAX_CONF_TEXT_LEN * sizeof(char));
             bzero(tmp_buffer, sizeof(tmp_buffer));
             sprintf(tmp_buffer, "%s %g ", pm[i].param_name, pm_numerical_list[i][j % pm_step_nums[i]]);
             strcat(param_list_string[j], tmp_buffer);
@@ -74,8 +85,51 @@ int oommf_task_executor(char *config_file)
            omf_conf->walltime);
 
     // for every set of parameters make a string and create as separate simulation file
-    queue_script_writer(omf_conf);
-    compose_parameter_combinations(omf_conf->pm, omf_conf->parameter_number);
+    double **pm_numerical_list;
+    // this holds unraveled parameters from start to stop by step
+    pm_numerical_list = malloc(omf_conf->parameter_number * sizeof(double *));
+    // this holds the lengths of each unraveled parameter list
+    int pm_step_nums[omf_conf->parameter_number];
+    int combinations = fill_numerical_parameter_arrays(pm_numerical_list,
+                                                       pm_step_nums,
+                                                       omf_conf->pm,
+                                                       omf_conf->parameter_number);
+    if (combinations <= 0)
+    {
+        fprintf(stderr, "Invalid number of combinations! %d", combinations);
+        exit(-1);
+    }
+    char **param_list_string;
+    param_list_string = malloc(combinations * sizeof(char *));
+    bzero(param_list_string, combinations * sizeof(param_list_string));
+    compose_parameter_combinations(omf_conf->pm, omf_conf->parameter_number,
+                                   combinations, param_list_string,
+                                   pm_numerical_list, pm_step_nums);
+
+    // check if directory exists
+    create_dir(omf_conf->remote_output_dir);
+
+    char filepath[MAX_CONF_TEXT_LEN];
+    char indir[MAX_CONF_TEXT_LEN];
+    for (int i = 0; i < combinations; i++)
+    {
+        // create sub directory
+        strcpy(filepath, omf_conf->remote_output_dir);
+        strcat(filepath, DELIMITER);
+        // remove spaces for readibility
+        remove_spaces(param_list_string[i], indir);
+        strcat(filepath, indir);
+        create_dir(filepath);
+        // create file
+        strcat(filepath, DELIMITER);
+        strcat(filepath, "script.pbs");
+        printf("%s\n", filepath);
+        // write a file for simulation
+        queue_script_writer(omf_conf, filepath, param_list_string[i]);
+        // clear all paths
+        bzero(filepath, sizeof(filepath));
+        bzero(indir, sizeof(indir));
+    }
     return 0;
 }
 
@@ -144,10 +198,10 @@ int parse_module_list(const cJSON *module_list, OOMMF_CONFIG *oommf_config)
     return 0;
 }
 
-int queue_script_writer(OOMMF_CONFIG *conf_spec)
+int queue_script_writer(OOMMF_CONFIG *conf_spec, char filepath[], char parameter_string[])
 {
     FILE *output;
-    output = fopen("testfile.pbs", "w");
+    output = fopen(filepath, "w");
     if (output == NULL)
     {
         perror("File error");
@@ -170,9 +224,8 @@ int queue_script_writer(OOMMF_CONFIG *conf_spec)
     fprintf(output, "tclsh %s boxsi %s -threads %d -parameters %s\n", conf_spec->tcl_path,
             conf_spec->input_script,
             conf_spec->threads,
-            "placeholder");
+            parameter_string);
     fprintf(output, "date\n");
-
     // close the file
     fclose(output);
     return 0;
@@ -313,4 +366,34 @@ char *readFile(char *fileName)
     filetext[n] = '\0';
 
     return filetext;
+}
+
+void remove_spaces(const char *input, char *result)
+{
+    int i, j = 0;
+    for (i = 0; input[i] != '\0'; i++)
+    {
+        if (!isspace((unsigned char)input[i]))
+        {
+            result[j++] = input[i];
+        }
+    }
+    result[j] = '\0';
+}
+
+void create_dir(char directory_path[])
+{
+    struct stat sb = {0};
+    if (stat(directory_path, &sb) == 0)
+    {
+        printf("Directory does exist\nDo you want to remove it?");
+        // exit(-1);
+        rmdir(directory_path);
+    }
+    else
+    {
+        printf("Creating directory %s...\n", directory_path);
+        if (mkdir(directory_path, 0777) && errno != EEXIST)
+            printf("error while trying to create '%s'\n%m\n", directory_path);
+    }
 }

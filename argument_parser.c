@@ -69,6 +69,6 @@ int main(int argc, char **argv)
     oommf_task_executor(arguments.conf_file);
     printf("Copying file...\n");
     // upload the file to the queue system along with the scripts
-    scp_file("testfile.pbs", arguments.username, arguments.server, "~/sim-dir");
+    // scp_file("testfile.pbs", arguments.username, arguments.server, "~/sim-dir");
     return 0;
 }
