@@ -17,46 +17,50 @@ int compose_parameter_combinations(PM_LIST pm[], int parameter_number)
     // firstly fill the lists with parameters (unravel the structure)
     double **pm_numerical_list;
     pm_numerical_list = malloc(parameter_number * sizeof(double *));
+    int pm_step_nums[parameter_number];
+    int total_combinations = 0;
     for (int i = 0; i < parameter_number; i++)
     {
+        printf("PARAMETER SWEEP %s\n", pm[i].param_name);
+        printf("start: %f, stop: %f\n", pm[i].start, pm[i].stop,
+               pm[i].start, pm[i].stop);
         double diff = pm[i].stop - pm[i].start;
-        int result = (int)(diff / pm[i].step);
-        double mod = diff - (double)(result)*pm[i].step;
+        int number_of_steps = (int)(diff / pm[i].step);
+        double mod = diff - (double)(number_of_steps)*pm[i].step;
         double list_len = mod == 0.0
                               ? diff + 1
                               : diff / pm[i].step;
-        pm_numerical_list[i] = malloc(list_len * sizeof(double));
+        printf("Deduced list length %d\n", number_of_steps);
+        pm_numerical_list[i] = malloc(number_of_steps * sizeof(double));
 
-        for (int j = 0; j < list_len; j++)
+        for (int j = 0; j < number_of_steps; j++)
         {
-            pm_numerical_list[i][j] = pm[i].start + j * pm[i].step;
+            pm_numerical_list[i][j] = pm[i].start + (float)j * pm[i].step;
+            printf("%g\n", pm_numerical_list[i][j]);
         }
+        pm_step_nums[i] = number_of_steps;
+        total_combinations = (total_combinations == 0) ? number_of_steps : total_combinations * number_of_steps;
     }
 
     // now combinations
     // fistly allocate for string param list
-
-    char *param_list_string;
-    for (int i = 0; i < parameter_number - 1; i++)
+    printf("Total combinations detected: %d\n", total_combinations);
+    char param_list_string[total_combinations][MAX_CONF_TEXT_LEN];
+    bzero(param_list_string, sizeof(param_list_string));
+    char tmp_buffer[MAX_CONF_TEXT_LEN];
+    for (int i = 0; i < parameter_number; i++)
     {
-        // now we merge param i' with param i+i
-        size_t n1 = sizeof(pm_numerical_list[i]) / sizeof(pm_numerical_list[i][0]);
-        size_t n2 = sizeof(pm_numerical_list[i + 1]) / sizeof(pm_numerical_list[i + 1][0]);
-
-        for (int k = 0; k < n1; k++)
+        for (int j = 0; j < total_combinations; j++)
         {
-            for (int j = 0; j < n2; j++)
-            {
-            }
+            bzero(tmp_buffer, sizeof(tmp_buffer));
+            sprintf(tmp_buffer, "%s %g ", pm[i].param_name, pm_numerical_list[i][j % pm_step_nums[i]]);
+            strcat(param_list_string[j], tmp_buffer);
         }
     }
-
-    // char parameter_strings[parameter_number * parameter_number][MAX_CONF_TEXT_LEN];
-    // for (int i = 0; i < parameter_number; i++)
-    // {
-
-    // }
-
+    for (int i = 0; i < total_combinations; i++)
+    {
+        printf("%s\n", param_list_string[i]);
+    }
     return 0;
 }
 
@@ -71,6 +75,7 @@ int oommf_task_executor(char *config_file)
 
     // for every set of parameters make a string and create as separate simulation file
     queue_script_writer(omf_conf);
+    compose_parameter_combinations(omf_conf->pm, omf_conf->parameter_number);
     return 0;
 }
 
@@ -91,7 +96,7 @@ int parse_parameter_list(const cJSON *parameter_list, PM_LIST pm_list[], int *pa
         cJSON *start = cJSON_GetObjectItemCaseSensitive(parameter_list, "start");
         if (cJSON_IsNumber(start))
         {
-            pm_list[iterator].start = start->valueint;
+            pm_list[iterator].start = start->valuedouble;
         }
         else
         {

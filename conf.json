@@ -12,7 +12,7 @@
     {
       "name": "scale",
       "start": 0.7,
-      "stop": 5,
+      "stop": 2,
       "step": 0.2
     },
     {
