@@ -15,8 +15,9 @@ argument_parser.o: argument_parser.c shell.o
 cJSON.o: cJSON.c
 	gcc -c cJSON.c
 
-cartesian.o: parsers/cartesian.c
+cartesian.o: parsers/cartesian.c parsers/json_readers.c
 	gcc -c parsers/cartesian.c
+	gcc -c parsers/json_readers.c
 
 test: cJSON.o test_json.c 
 	gcc cJSON.o test_json.c -o json 
