@@ -1,13 +1,11 @@
-OBJS=shell.o ssh_conn.o argument_parser.o cJSON.o cartesian.o json_readers.o
-CC = gcc -std=c99 -pedantic
+OBJS=shell.o argument_parser.o cJSON.o cartesian.o json_readers.o
+CC=gcc -std=c99 -pedantic
+
 all: $(OBJS)
-	$(CC) $(OBJS) -o client -lssh
+	$(CC) $(OBJS) -o client 
 
 shell.o: shell.c cartesian.o
 	$(CC) -c shell.c 
-
-ssh_conn.o: ssh_conn/ssh_conn.c
-	$(CC) -c ssh_conn/ssh_conn.c
 
 argument_parser.o: argument_parser.c shell.o
 	$(CC) -c argument_parser.c

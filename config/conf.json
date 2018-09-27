@@ -1,7 +1,7 @@
 {
   "name": "sim-dir",
   "remote_script_location": "/home/lemurpwned/repos/grid-swift/makefile",
-  "local_script_import_location": "/home/lemurpwned/Simulations",
+  "local_script_import_location": "/net/people/plgjakubmj",
   "grant": "plggrant007",
   "walltime": "00:01:00",
   "core_count": 1e-6,

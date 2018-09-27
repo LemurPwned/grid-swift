@@ -10,10 +10,6 @@
 #include <stdarg.h>
 #include <errno.h>
 
-#include "ssh_conn/ssh_conn.h"
-
-#define STR_CONF_ELEMENTS 6
-#define NUM_CONF_ELEMENTS 3
 
 int fill_numerical_parameter_arrays(double **pm_numerical_list,
                                     char ***pm_string_list,
@@ -99,10 +95,9 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
     // now import file from remote
     printf("Copying file from remote ... \n");
     create_dir(project_name, 0);
-    // char command[MAX_CONF_TEXT_LEN];
-    // sprintf(command, "scp %s %s", omf_conf->remote_script_location, project_name);
-    // system(command);
-    scp_file(omf_conf->remote_script_location, ud->username, ud->hostname, project_name);
+    char command[MAX_CONF_TEXT_LEN];
+    sprintf(command, "cp %s %s", omf_conf->remote_script_location, project_name);
+    system(command);
 
     char filepath[MAX_CONF_TEXT_LEN],
         indir[MAX_CONF_TEXT_LEN],
@@ -112,6 +107,7 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
     extract_basename(omf_conf->remote_script_location, indir);
     sprintf(mif_path, "%s/%s", project_name, indir);
     bzero(indir, sizeof(indir));
+    exit(-1);
 
     for (int i = 0; i < combinations; i++)
     {
@@ -129,7 +125,9 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
         sprintf(final_parameter_name, "\"%s\"", param_list_string[i]);
         queue_script_writer(omf_conf, filepath, final_parameter_name, mif_path);
         // TODO: here run script in the background using the filepath
-        printf("sbatch %s\n", filepath);
+        bzero(command, sizeof(command));
+	sprintf(command, "sbatch %s\n", filepath);
+	system(command);
         // clear all paths
         bzero(final_parameter_name, sizeof(final_parameter_name));
         bzero(filepath, sizeof(filepath));

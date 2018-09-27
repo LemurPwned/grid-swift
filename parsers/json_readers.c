@@ -19,7 +19,7 @@ int parse_module_list(const cJSON *module_list, OOMMF_CONFIG *oommf_config)
     {
         arrayItem = cJSON_GetArrayItem(module_list, i);
         // malloc for each element of the array
-        oommf_config->modules[i] = malloc(strlen(arrayItem->valuestring + 1) * sizeof(char));
+        oommf_config->modules[i] = malloc(strlen(arrayItem->valuestring) * sizeof(char));
         strcpy(oommf_config->modules[i], arrayItem->valuestring);
     }
     return 0;
