@@ -107,6 +107,7 @@ int oommf_task_executor(char *config_file)
                                    pm_numerical_list, pm_step_nums);
 
     // check if directory exists
+    system("rm -rf sim-dir");
     create_dir(omf_conf->remote_output_dir);
 
     char filepath[MAX_CONF_TEXT_LEN];
@@ -123,7 +124,7 @@ int oommf_task_executor(char *config_file)
         // create file
         strcat(filepath, DELIMITER);
         strcat(filepath, "script.pbs");
-        printf("%s\n", filepath);
+        // printf("%s\n", filepath);
         // write a file for simulation
         queue_script_writer(omf_conf, filepath, param_list_string[i]);
         // clear all paths
@@ -386,13 +387,14 @@ void create_dir(char directory_path[])
     struct stat sb = {0};
     if (stat(directory_path, &sb) == 0)
     {
-        printf("Directory does exist\nDo you want to remove it?");
+        mkdir(directory_path, 0777);
+        printf("Directory %s does exist\n", directory_path);
         // exit(-1);
-        rmdir(directory_path);
+        // rmdir(directory_path);
     }
     else
     {
-        printf("Creating directory %s...\n", directory_path);
+        // printf("Creating directory %s...\n", directory_path);
         if (mkdir(directory_path, 0777) && errno != EEXIST)
             printf("error while trying to create '%s'\n%m\n", directory_path);
     }
