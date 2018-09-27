@@ -33,8 +33,8 @@ int queue_script_writer(OOMMF_CONFIG *conf_spec, char filepath[], char parameter
 int oommf_task_executor(char *config_file);
 int parse_parameter_list(const cJSON *parameter_list, PM_LIST pm_list[], int *param_length);
 int oommf_config_reader(const char *config_file, OOMMF_CONFIG *o_conf);
-int compose_parameter_combinations(PM_LIST pm[], int parameter_number, int total_combinations,
-                                   char **param_list_string, double **pm_numerical_list,
+int compose_parameter_combinations(PM_LIST pm[], int parameter_number,
+                                   char **param_list_string, char ***pm_string_list,
                                    int pm_step_nums[]);
 char *readFile(char *fileName);
 void remove_spaces(const char *input, char *result);

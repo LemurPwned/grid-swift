@@ -8,11 +8,13 @@
 #include <errno.h>
 
 #include "shell.h"
+#include "parsers/cartesian.h"
 
 #define STR_CONF_ELEMENTS 6
 #define NUM_CONF_ELEMENTS 3
 
 int fill_numerical_parameter_arrays(double **pm_numerical_list,
+                                    char ***pm_string_list,
                                     int pm_step_nums[],
                                     PM_LIST pm[], int parameter_number)
 {
@@ -32,11 +34,14 @@ int fill_numerical_parameter_arrays(double **pm_numerical_list,
                               : diff / pm[i].step;
         printf("Deduced list length %d\n", number_of_steps);
         pm_numerical_list[i] = malloc(number_of_steps * sizeof(double));
-
+        pm_string_list[i] = malloc(number_of_steps * sizeof(char *));
         for (int j = 0; j < number_of_steps; j++)
         {
             pm_numerical_list[i][j] = pm[i].start + (float)j * pm[i].step;
-            printf("%g\n", pm_numerical_list[i][j]);
+            // printf("%g\n", pm_numerical_list[i][j]);
+            pm_string_list[i][j] = malloc(MAX_CONF_TEXT_LEN * sizeof(char));
+            sprintf(pm_string_list[i][j], "%s %g", pm[i].param_name, pm_numerical_list[i][j]);
+            // printf("PARAM: %s\n", pm_string_list[i][j]);
         }
         pm_step_nums[i] = number_of_steps;
         // avoid consequent multiplicatiion by zero
@@ -44,8 +49,8 @@ int fill_numerical_parameter_arrays(double **pm_numerical_list,
     }
     return total_combinations;
 }
-int compose_parameter_combinations(PM_LIST pm[], int parameter_number, int total_combinations,
-                                   char **param_list_string, double **pm_numerical_list,
+int compose_parameter_combinations(PM_LIST pm[], int parameter_number,
+                                   char **param_list_string, char ***pm_string_list,
                                    int pm_step_nums[])
 {
     /* 
@@ -54,23 +59,12 @@ int compose_parameter_combinations(PM_LIST pm[], int parameter_number, int total
     */
 
     // now combinations
-    printf("Total combinations detected: %d\n", total_combinations);
-    // firstly allocate for string param list, zero it out
-    char tmp_buffer[MAX_CONF_TEXT_LEN];
+
+    int param_list_string_size = 0;
     for (int i = 0; i < parameter_number; i++)
     {
-        for (int j = 0; j < total_combinations; j++)
-        {
-            if (i == 0) // malloc if first in the loop
-                param_list_string[j] = malloc(MAX_CONF_TEXT_LEN * sizeof(char));
-            bzero(tmp_buffer, sizeof(tmp_buffer));
-            sprintf(tmp_buffer, "%s %g ", pm[i].param_name, pm_numerical_list[i][j % pm_step_nums[i]]);
-            strcat(param_list_string[j], tmp_buffer);
-        }
-    }
-    for (int i = 0; i < total_combinations; i++)
-    {
-        printf("%s\n", param_list_string[i]);
+        cartesian(pm_string_list[i], param_list_string, pm_step_nums[i], param_list_string_size);
+        param_list_string_size = (param_list_string_size == 0) ? pm_step_nums[i] : param_list_string_size * pm_step_nums[i];
     }
     return 0;
 }
@@ -86,11 +80,16 @@ int oommf_task_executor(char *config_file)
 
     // for every set of parameters make a string and create as separate simulation file
     double **pm_numerical_list;
+    char ***pm_string_list;
+    char **param_list_string;
     // this holds unraveled parameters from start to stop by step
     pm_numerical_list = malloc(omf_conf->parameter_number * sizeof(double *));
+    // this holds unraveled parameters from start to stop by step in string format
+    pm_string_list = malloc(omf_conf->parameter_number * sizeof(char **));
     // this holds the lengths of each unraveled parameter list
     int pm_step_nums[omf_conf->parameter_number];
     int combinations = fill_numerical_parameter_arrays(pm_numerical_list,
+                                                       pm_string_list,
                                                        pm_step_nums,
                                                        omf_conf->pm,
                                                        omf_conf->parameter_number);
@@ -99,19 +98,24 @@ int oommf_task_executor(char *config_file)
         fprintf(stderr, "Invalid number of combinations! %d", combinations);
         exit(-1);
     }
-    char **param_list_string;
+    // this holds unraveled parameters combinations
     param_list_string = malloc(combinations * sizeof(char *));
-    bzero(param_list_string, combinations * sizeof(param_list_string));
+    for (int i = 0; i < combinations; i++)
+    {
+        param_list_string[i] = malloc(MAX_CONF_TEXT_LEN * sizeof(char));
+    }
     compose_parameter_combinations(omf_conf->pm, omf_conf->parameter_number,
-                                   combinations, param_list_string,
-                                   pm_numerical_list, pm_step_nums);
-
+                                   param_list_string,
+                                   pm_string_list,
+                                   pm_step_nums);
     // check if directory exists
     system("rm -rf sim-dir");
     create_dir(omf_conf->remote_output_dir);
 
-    char filepath[MAX_CONF_TEXT_LEN];
-    char indir[MAX_CONF_TEXT_LEN];
+    char filepath[MAX_CONF_TEXT_LEN],
+        indir[MAX_CONF_TEXT_LEN],
+        final_parameter_name[MAX_CONF_TEXT_LEN];
+
     for (int i = 0; i < combinations; i++)
     {
         // create sub directory
@@ -126,7 +130,9 @@ int oommf_task_executor(char *config_file)
         strcat(filepath, "script.pbs");
         // printf("%s\n", filepath);
         // write a file for simulation
-        queue_script_writer(omf_conf, filepath, param_list_string[i]);
+        sprintf(final_parameter_name, "\"%s\"", param_list_string[i]);
+        queue_script_writer(omf_conf, filepath, final_parameter_name);
+        bzero(final_parameter_name, sizeof(final_parameter_name));
         // clear all paths
         bzero(filepath, sizeof(filepath));
         bzero(indir, sizeof(indir));
