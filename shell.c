@@ -54,9 +54,8 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
     const char *filename = readFile(config_file);
     OOMMF_CONFIG *omf_conf = malloc(sizeof(struct oommf_config));
     oommf_config_reader(filename, omf_conf);
-    printf("%s, %s, %d, %s\n", omf_conf->name, omf_conf->local_script_import_location, omf_conf->core_count,
+    printf("%s, %s, %s, %d, %s\n", omf_conf->name, omf_conf->local_script_import_location, omf_conf->remote_script_location, omf_conf->core_count,
            omf_conf->walltime);
-
     // for every set of parameters make a string and create as separate simulation file
     double **pm_numerical_list;
     char ***pm_string_list;
@@ -107,7 +106,6 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
     extract_basename(omf_conf->remote_script_location, indir);
     sprintf(mif_path, "%s/%s", project_name, indir);
     bzero(indir, sizeof(indir));
-    exit(-1);
 
     for (int i = 0; i < combinations; i++)
     {
