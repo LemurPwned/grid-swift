@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
+#include <stdarg.h>
 #include <errno.h>
 
 #define STR_CONF_ELEMENTS 6
@@ -90,8 +90,7 @@ int oommf_task_executor(char *config_file)
                                    pm_string_list,
                                    pm_step_nums);
     // check if directory exists
-    system("rm -rf sim-dir");
-    create_dir(omf_conf->remote_output_dir);
+    create_dir(omf_conf->remote_output_dir, 0);
 
     char filepath[MAX_CONF_TEXT_LEN],
         indir[MAX_CONF_TEXT_LEN],
@@ -105,7 +104,7 @@ int oommf_task_executor(char *config_file)
         // remove spaces for readibility
         remove_spaces(param_list_string[i], indir);
         strcat(filepath, indir);
-        create_dir(filepath);
+        create_dir(filepath, 1);
         // create file
         strcat(filepath, DELIMITER);
         strcat(filepath, "script.pbs");
@@ -154,19 +153,39 @@ int queue_script_writer(OOMMF_CONFIG *conf_spec, char filepath[], char parameter
     return 0;
 }
 
-void create_dir(char directory_path[])
+void create_dir(char directory_path[], int force_removal)
 {
     struct stat sb = {0};
-    if (stat(directory_path, &sb) == 0)
+    if ((stat(directory_path, &sb) == 0) && S_ISDIR(sb.st_mode))
     {
-        mkdir(directory_path, 0777);
-        printf("Directory %s does exist\n", directory_path);
-        // exit(-1);
-        // rmdir(directory_path);
+        if (force_removal == 1)
+        {
+            char command[MAX_CONF_TEXT_LEN];
+            sprintf(command, "rm -rf %s", directory_path);
+            system(command);
+            create_dir(directory_path, 0);
+        }
+        else
+        {
+            // if removal is not forced, ask the user
+            printf("Directory %s does exist. Do you want to remove it? [Y/n]\n", directory_path);
+            char response[200];
+            fscanf(stdin, "%s", response);
+            if ((!strcmp(response, "Yes")) || (!strcmp(response, "Y")) ||
+                (!strcmp(response, "y")) || (!strcmp(response, "yes")))
+            {
+                printf("Removing the directory and proceeding...\n");
+                rmdir(directory_path);
+            }
+            else
+            {
+                printf("Leaving, the directory was not removed...\n");
+                exit(0);
+            }
+        }
     }
     else
     {
-        // printf("Creating directory %s...\n", directory_path);
         if (mkdir(directory_path, 0777) && errno != EEXIST)
             printf("error while trying to create '%s'\n%m\n", directory_path);
     }
