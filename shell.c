@@ -10,6 +10,8 @@
 #include <stdarg.h>
 #include <errno.h>
 
+#include "ssh_conn/ssh_conn.h"
+
 #define STR_CONF_ELEMENTS 6
 #define NUM_CONF_ELEMENTS 3
 
@@ -50,13 +52,13 @@ int fill_numerical_parameter_arrays(double **pm_numerical_list,
     return total_combinations;
 }
 
-int oommf_task_executor(char *config_file)
+int oommf_task_executor(char *config_file, USER_DATA *ud)
 {
     // define config struct
     const char *filename = readFile(config_file);
     OOMMF_CONFIG *omf_conf = malloc(sizeof(struct oommf_config));
     oommf_config_reader(filename, omf_conf);
-    printf("%s, %s, %d, %s\n", omf_conf->name, omf_conf->remote_output_dir, omf_conf->core_count,
+    printf("%s, %s, %d, %s\n", omf_conf->name, omf_conf->local_script_import_location, omf_conf->core_count,
            omf_conf->walltime);
 
     // for every set of parameters make a string and create as separate simulation file
@@ -90,16 +92,31 @@ int oommf_task_executor(char *config_file)
                                    pm_string_list,
                                    pm_step_nums);
     // check if directory exists
-    create_dir(omf_conf->remote_output_dir, 0);
+
+    char project_name[MAX_CONF_TEXT_LEN];
+    sprintf(project_name, "%s/%s", omf_conf->local_script_import_location, omf_conf->name);
+
+    // now import file from remote
+    printf("Copying file from remote ... \n");
+    create_dir(project_name, 0);
+    // char command[MAX_CONF_TEXT_LEN];
+    // sprintf(command, "scp %s %s", omf_conf->remote_script_location, project_name);
+    // system(command);
+    scp_file(omf_conf->remote_script_location, ud->username, ud->hostname, project_name);
 
     char filepath[MAX_CONF_TEXT_LEN],
         indir[MAX_CONF_TEXT_LEN],
-        final_parameter_name[MAX_CONF_TEXT_LEN];
+        final_parameter_name[MAX_CONF_TEXT_LEN],
+        mif_path[MAX_CONF_TEXT_LEN]; // relative path to mif
+
+    extract_basename(omf_conf->remote_script_location, indir);
+    sprintf(mif_path, "%s/%s", project_name, indir);
+    bzero(indir, sizeof(indir));
 
     for (int i = 0; i < combinations; i++)
     {
         // create sub directory
-        strcpy(filepath, omf_conf->remote_output_dir);
+        strcpy(filepath, project_name);
         strcat(filepath, DELIMITER);
         // remove spaces for readibility
         remove_spaces(param_list_string[i], indir);
@@ -110,8 +127,9 @@ int oommf_task_executor(char *config_file)
         strcat(filepath, "script.pbs");
         // write a file for simulation
         sprintf(final_parameter_name, "\"%s\"", param_list_string[i]);
-        queue_script_writer(omf_conf, filepath, final_parameter_name);
+        queue_script_writer(omf_conf, filepath, final_parameter_name, mif_path);
         // TODO: here run script in the background using the filepath
+        printf("sbatch %s\n", filepath);
         // clear all paths
         bzero(final_parameter_name, sizeof(final_parameter_name));
         bzero(filepath, sizeof(filepath));
@@ -120,7 +138,7 @@ int oommf_task_executor(char *config_file)
     return 0;
 }
 
-int queue_script_writer(OOMMF_CONFIG *conf_spec, char filepath[], char parameter_string[])
+int queue_script_writer(OOMMF_CONFIG *conf_spec, char filepath[], char parameter_string[], char mif_path[])
 {
     FILE *output;
     output = fopen(filepath, "w");
@@ -129,22 +147,24 @@ int queue_script_writer(OOMMF_CONFIG *conf_spec, char filepath[], char parameter
         perror("File error");
         return -1;
     }
-
-    fprintf(output, "#SBATCH -J %s\n", conf_spec->name);
-    fprintf(output, "#SBATCH - N %d\n", conf_spec->nodes);
+    fprintf(output, "#!/bin/bash\n");
+    fprintf(output, "#SBATCH -J %s_(%s)\n", conf_spec->name, parameter_string);
+    fprintf(output, "#SBATCH -N %d\n", conf_spec->nodes);
     fprintf(output, "#SBATCH --ntasks-per-node=%d\n", conf_spec->core_count);
+    fprintf(output, "#SBATCH --time=%s\n", conf_spec->walltime);
     fprintf(output, "#SBATCH -A %s\n", conf_spec->grant);
     fprintf(output, "#SBATCH -p plgrid\n");
-    fprintf(output, "#SBATCH --output=\"%s\"\n", conf_spec->remote_output_dir);
-    fprintf(output, "#SBATCH --error=\"%s\"\n", conf_spec->remote_output_dir);
+    fprintf(output, "#SBATCH --output=\"%s_output.txt\"\n", filepath);
+    fprintf(output, "#SBATCH --error=\"%s_error.txt\"\n", filepath);
     fprintf(output, "date\n");
     for (int i = 0; i < conf_spec->modules_number; i++)
     {
         fprintf(output, "module load %s\n", conf_spec->modules[i]);
     }
     fprintf(output, "export MKL_HOME=\n");
-    fprintf(output, "tclsh %s boxsi %s -threads %d -parameters %s\n", conf_spec->tcl_path,
-            conf_spec->input_script,
+    fprintf(output, "tclsh %s boxsi %s -threads %d -parameters %s\n",
+            conf_spec->tcl_path,
+            mif_path,
             conf_spec->threads,
             parameter_string);
     fprintf(output, "date\n");

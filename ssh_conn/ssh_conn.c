@@ -122,9 +122,12 @@ int show_remote_processes(ssh_session session, const char *cmd)
 
 int scp_file(char *filename, char *user, char *server, char *remote_dir)
 {
+  /* remote to local copy */
   char command[200];
-  sprintf(command, "scp -P 32768 %s %s@%s:%s", filename, user, server, remote_dir);
+  // sprintf(command, "scp -P 32768 %s@%s:%s %s", user, server, remote_dir, filename);
+  sprintf(command, "scp %s@%s:%s %s", user, server, remote_dir, filename);
   printf("executing %s...\n", command);
+
   system(command);
   return 0;
 }

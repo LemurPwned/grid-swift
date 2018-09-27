@@ -1,7 +1,7 @@
 {
-  "name": "Default simulation",
-  "input_script": "test.pbs",
-  "remote_output_dir": "/home/lemurpwned/repos/grid-swift/sim-dir",
+  "name": "sim-dir",
+  "remote_script_location": "/home/lemurpwned/repos/grid-swift/makefile",
+  "local_script_import_location": "/home/lemurpwned/Simulations",
   "grant": "plggrant007",
   "walltime": "00:01:00",
   "core_count": 1e-6,

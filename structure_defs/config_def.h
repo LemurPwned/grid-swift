@@ -5,6 +5,12 @@
 #define MAX_PARAMETER_NUMBER 5
 #define DELIMITER "/"
 
+typedef struct user_info
+{
+    char username[MAX_CONF_TEXT_LEN];
+    char hostname[MAX_CONF_TEXT_LEN];
+
+} USER_DATA;
 typedef struct parameter_sweep
 {
     char param_name[MAX_CONF_TEXT_LEN];
@@ -16,8 +22,8 @@ typedef struct parameter_sweep
 typedef struct oommf_config
 {
     char name[MAX_CONF_TEXT_LEN];
-    char input_script[MAX_CONF_TEXT_LEN];
-    char remote_output_dir[MAX_CONF_TEXT_LEN];
+    char local_script_import_location[MAX_CONF_TEXT_LEN];
+    char remote_script_location[MAX_CONF_TEXT_LEN];
     char grant[MAX_CONF_TEXT_LEN];
     char walltime[MAX_CONF_TEXT_LEN];
     char tcl_path[MAX_CONF_TEXT_LEN];

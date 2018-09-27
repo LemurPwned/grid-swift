@@ -94,21 +94,23 @@ int oommf_config_reader(const char *config_file, OOMMF_CONFIG *o_conf)
     }
     else
         perror("{\"name\"} parameter not found in conf.json");
-    name = cJSON_GetObjectItemCaseSensitive(config_json, "input_script");
-    if (cJSON_IsString(name) && (name->valuestring != NULL))
-    {
-        strcpy(o_conf->input_script, name->valuestring);
-    }
-    else
-        perror("{\"input_script\"} parameter not found in conf.json");
 
-    name = cJSON_GetObjectItemCaseSensitive(config_json, "remote_output_dir");
+    name = cJSON_GetObjectItemCaseSensitive(config_json, "local_script_import_location");
     if (cJSON_IsString(name) && (name->valuestring != NULL))
     {
-        strcpy(o_conf->remote_output_dir, name->valuestring);
+        strcpy(o_conf->local_script_import_location, name->valuestring);
     }
     else
-        perror("{\"remote_output_dir\"} parameter not found in conf.json");
+        perror("{\"local_script_import_location\"} parameter not found in conf.json");
+
+    name = cJSON_GetObjectItemCaseSensitive(config_json, "remote_script_location");
+    if (cJSON_IsString(name) && (name->valuestring != NULL))
+    {
+        strcpy(o_conf->remote_script_location, name->valuestring);
+    }
+    else
+        perror("{\"remote_script_location\"} parameter not found in conf.json");
+
     name = cJSON_GetObjectItemCaseSensitive(config_json, "grant");
     if (cJSON_IsString(name) && (name->valuestring != NULL))
     {
@@ -118,6 +120,7 @@ int oommf_config_reader(const char *config_file, OOMMF_CONFIG *o_conf)
     {
         perror("{\"grant\"} parameter not found in conf.json");
     }
+
     name = cJSON_GetObjectItemCaseSensitive(config_json, "walltime");
     if (cJSON_IsString(name) && (name->valuestring != NULL))
     {
@@ -220,4 +223,20 @@ void remove_spaces(const char *input, char *result)
         }
     }
     result[j] = '\0';
+}
+
+void extract_basename(char *filepath, char *basename)
+{
+    for (int i = strlen(filepath); i > 0; i--)
+    {
+        if (filepath[i] == '/')
+        {
+            int string_size = strlen(filepath) - i;
+            for (int j = 0; j < string_size; j++)
+            {
+                basename[j] = filepath[i + 1 + j];
+            }
+            return;
+        }
+    }
 }
