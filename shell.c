@@ -1,13 +1,14 @@
-#include <stdlib.h>
+#include "shell.h"
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <errno.h>
 
-#include "shell.h"
+#include <errno.h>
 
 #define STR_CONF_ELEMENTS 6
 #define NUM_CONF_ELEMENTS 3

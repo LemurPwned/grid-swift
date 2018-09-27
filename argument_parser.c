@@ -3,14 +3,14 @@
 #include <stdbool.h>
 #include <argp.h>
 
+#include "ssh_conn/ssh_conn.h"
 #include "shell.h"
-#include "ssh_conn.h"
 
 #define MAX_ARGUMENT_STR_LEN 200
 
 const char *argp_program_version = "PLGRiD Shell v1.0";
 const char *argp_program_bug_address = "jakubmj@student.agh.edu.pl";
-static char doc[] = "PLGRID V.A.S.P. interface";
+static char doc[] = "PLGRID CLI interface";
 static char args_doc[] = "[FILENAME]...";
 
 struct arguments
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
     // default options
     arguments.simtype = "o";
     arguments.username = "root";
-    arguments.conf_file = "conf.json";
+    arguments.conf_file = "config/conf.json";
     arguments.server = "localhost";
 
     argp_parse(&argp, argc, argv, 0, 0, &arguments);
