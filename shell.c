@@ -10,7 +10,6 @@
 #include <stdarg.h>
 #include <errno.h>
 
-
 int fill_numerical_parameter_arrays(double **pm_numerical_list,
                                     char ***pm_string_list,
                                     int pm_step_nums[],
@@ -102,35 +101,35 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
         indir[MAX_CONF_TEXT_LEN],
         final_parameter_name[MAX_CONF_TEXT_LEN],
         mif_basename[MAX_CONF_TEXT_LEN], // relative path to mif
-	mif_path[MAX_CONF_TEXT_LEN];
+        mif_path[MAX_CONF_TEXT_LEN];
 
     extract_basename(omf_conf->remote_script_location, mif_basename);
 
     for (int i = 0; i < combinations; i++)
     {
         // remove spaces for readibility
-        remove_spaces(param_list_string[i], indir);
+        replace_space(param_list_string[i], indir);
         // create path to the directory of a single combination
         sprintf(filepath, "%s%s%s", project_name, DELIMITER, indir);
-	// create a directory for a parameter combination
+        // create a directory for a parameter combination
         create_dir(filepath, 1);
-	
-	// create a new path to the mif
-	sprintf(mif_path, "%s%s%s", filepath, DELIMITER, mif_basename);
-	// copy mif from previous path to the current one
-	bzero(command, sizeof(command));
-	sprintf(command, "cp %s %s", omf_conf->remote_script_location, mif_path);
-	system(command);
-	// prepare the filepath for the script
+
+        // create a new path to the mif
+        sprintf(mif_path, "%s%s%s", filepath, DELIMITER, mif_basename);
+        // copy mif from previous path to the current one
+        bzero(command, sizeof(command));
+        sprintf(command, "cp %s %s", omf_conf->remote_script_location, mif_path);
+        system(command);
+        // prepare the filepath for the script
         strcat(filepath, DELIMITER);
         strcat(filepath, "script.pbs");
         // write a file for simulation
         sprintf(final_parameter_name, "\"%s\"", param_list_string[i]);
         queue_script_writer(omf_conf, filepath, final_parameter_name, mif_path);
-        
-	bzero(command, sizeof(command));
-	sprintf(command, "sbatch %s\n", filepath);
-	system(command);
+
+        bzero(command, sizeof(command));
+        sprintf(command, "sbatch %s\n", filepath);
+        system(command);
         // clear all paths
         bzero(final_parameter_name, sizeof(final_parameter_name));
         bzero(filepath, sizeof(filepath));

@@ -1,10 +1,10 @@
 {
   "name": "sim-dir",
-  "remote_script_location": "/home/lemurpwned/repos/grid-swift/makefile",
-  "local_script_import_location": "/net/people/plgjakubmj",
-  "grant": "plggrant007",
+  "remote_script_location": "/home/lemurpwned/repos/grid-swift/shell.c",
+  "local_script_import_location": "/home/lemurpwned/Simulations",
+  "grant": "grant008",
   "walltime": "00:01:00",
-  "core_count": 1e-6,
+  "core_count": 4,
   "nodes": 2,
   "threads": 4,
   "tcl_path": "/net/archive/groups/plggspinsym/OOMMF-SWAG/oommf-1.2a5bis/oommf.tcl",
@@ -23,8 +23,8 @@
     }
   ],
   "modules": [
-    "module load plgrid/tools/tcltk/8.5.19-threads",
-    "module load plgrid/tools/intel/16.0.3",
-    "module load plgrid/libs/mkl/11.3.1"
+    "plgrid/tools/tcltk/8.5.19-threads",
+    "plgrid/tools/intel/16.0.3",
+    "plgrid/libs/mkl/11.3.1"
   ]
 }
