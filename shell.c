@@ -101,29 +101,34 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
     char filepath[MAX_CONF_TEXT_LEN],
         indir[MAX_CONF_TEXT_LEN],
         final_parameter_name[MAX_CONF_TEXT_LEN],
-        mif_path[MAX_CONF_TEXT_LEN]; // relative path to mif
+        mif_basename[MAX_CONF_TEXT_LEN], // relative path to mif
+	mif_path[MAX_CONF_TEXT_LEN];
 
-    extract_basename(omf_conf->remote_script_location, indir);
-    sprintf(mif_path, "%s/%s", project_name, indir);
-    bzero(indir, sizeof(indir));
+    extract_basename(omf_conf->remote_script_location, mif_basename);
 
     for (int i = 0; i < combinations; i++)
     {
-        // create sub directory
-        strcpy(filepath, project_name);
-        strcat(filepath, DELIMITER);
         // remove spaces for readibility
         remove_spaces(param_list_string[i], indir);
-        strcat(filepath, indir);
+        // create path to the directory of a single combination
+        sprintf(filepath, "%s%s%s", project_name, DELIMITER, indir);
+	// create a directory for a parameter combination
         create_dir(filepath, 1);
-        // create file
+	
+	// create a new path to the mif
+	sprintf(mif_path, "%s%s%s", filepath, DELIMITER, mif_basename);
+	// copy mif from previous path to the current one
+	bzero(command, sizeof(command));
+	sprintf(command, "cp %s %s", omf_conf->remote_script_location, mif_path);
+	system(command);
+	// prepare the filepath for the script
         strcat(filepath, DELIMITER);
         strcat(filepath, "script.pbs");
         // write a file for simulation
         sprintf(final_parameter_name, "\"%s\"", param_list_string[i]);
         queue_script_writer(omf_conf, filepath, final_parameter_name, mif_path);
-        // TODO: here run script in the background using the filepath
-        bzero(command, sizeof(command));
+        
+	bzero(command, sizeof(command));
 	sprintf(command, "sbatch %s\n", filepath);
 	system(command);
         // clear all paths
