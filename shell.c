@@ -128,7 +128,7 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
         queue_script_writer(omf_conf, filepath, final_parameter_name, mif_path);
 
         bzero(command, sizeof(command));
-        sprintf(command, "sbatch %s\n", filepath);
+        sprintf(command, "sbatch %s", filepath);
         system(command);
         // clear all paths
         bzero(final_parameter_name, sizeof(final_parameter_name));
