@@ -24,7 +24,7 @@ int fill_numerical_parameter_arrays(double **pm_numerical_list,
         printf("start: %f, stop: %f\n", pm[i].start, pm[i].stop,
                pm[i].start, pm[i].stop);
         double diff = pm[i].stop - pm[i].start;
-        int number_of_steps = (int)(diff / pm[i].step);
+        int number_of_steps = (int)(diff / pm[i].step) + 1;
         double mod = diff - (double)(number_of_steps)*pm[i].step;
         double list_len = mod == 0.0
                               ? diff + 1
@@ -38,7 +38,7 @@ int fill_numerical_parameter_arrays(double **pm_numerical_list,
             // printf("%g\n", pm_numerical_list[i][j]);
             pm_string_list[i][j] = malloc(MAX_CONF_TEXT_LEN * sizeof(char));
             sprintf(pm_string_list[i][j], "%s %g", pm[i].param_name, pm_numerical_list[i][j]);
-            // printf("PARAM: %s\n", pm_string_list[i][j]);
+            printf("PARAM: %s\n", pm_string_list[i][j]);
         }
         pm_step_nums[i] = number_of_steps;
         // avoid consequent multiplicatiion by zero

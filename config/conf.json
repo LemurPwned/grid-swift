@@ -10,16 +10,10 @@
   "tcl_path": "/net/archive/groups/plggspinsym/OOMMF-SWAG/oommf-1.2a5bis/oommf.tcl",
   "parameter_list": [
     {
-      "name": "scale",
-      "start": 0.7,
-      "stop": 2,
-      "step": 0.2
-    },
-    {
       "name": "Amp",
-      "start": -1e-5,
-      "stop": 1e-5,
-      "step": 1e-6
+      "start": 0.5e9,
+      "stop": 1.5e9,
+      "step": 0.3e9
     }
   ],
   "modules": [
