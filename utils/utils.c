@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <regex.h>
 #include <stdbool.h>
+#include "../utils/utils.h"
 
 char *readFile(char *fileName)
 {
@@ -69,6 +70,35 @@ void extract_basename(char *filepath, char *basename)
     }
 }
 
+void get_status_jobs(JOB_INF jobs[], int job_size)
+{
+    FILE *fp;
+    char output[300], line[20];
+
+    pipe_opener(fp, "cat queue.txt |  cut -d ' ' -f 11", output, 0);
+    char *tok;
+    char *delims = "\n";
+    tok = strtok(output, delims);
+    int j = 0;
+
+    while (getline(line, NULL, ))
+    {
+        printf("HERE\n");
+        int a = strtol(tok, NULL, 10);
+        jobs[j].job_no = a;
+        printf("%d\n", a);
+        tok = strtok(NULL, delims);
+        j++;
+        if (j > job_size)
+            break;
+    }
+    for (int i = 0; i < job_size; i++)
+    {
+
+        // printf("JOB NO: %d\n", jobs[i].job_no);
+    }
+}
+
 int extract_job_number(char *sbatch_output)
 {
     char *regex_string = "([0-9]+)";
@@ -81,9 +111,11 @@ int extract_job_number(char *sbatch_output)
     if (regcomp(&regex_compiled, regex_string, REG_EXTENDED))
     {
         printf("Could not compile regex\n");
+        regfree(&regex_compiled);
         return false;
     }
     int match = regexec(&regex_compiled, sbatch_output, 1, pmatch, 0);
+    regfree(&regex_compiled);
     if (match)
     {
         perror("extracted batch is not a valid batch output");
@@ -132,6 +164,7 @@ void pipe_opener(FILE *__REUSABLE_PIPE__, char *command, char **output, int sile
         if (__REUSABLE_PIPE__ == NULL)
         {
             perror("Failed to open fipe");
+            return;
         }
 
         fgets(output, 200, __REUSABLE_PIPE__);
