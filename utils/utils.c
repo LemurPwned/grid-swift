@@ -70,31 +70,73 @@ void extract_basename(char *filepath, char *basename)
     }
 }
 
+void save_jobs_to_file(JOB_INF jobs[], int job_num)
+{
+
+    char *filename;
+    sprintf(filename, "JOBS_%d", job_num);
+    FILE *fp = fopen(filename, 'w');
+    if (fp == NULL)
+    {
+        perror("Cannot save jobs due to file read error");
+        exit(-1);
+    }
+    for (int i = 0; i < job_num; i++)
+    {
+        fprintf(fp, "%i;%s%s", jobs[i].job_no,
+                jobs[i].job_timestamp,
+                jobs[i].run_time);
+    }
+    fclose(fp);
+}
+
+void read_jobs_from_file(JOB_INF *jobs, char *filename, int job_num)
+{
+    FILE *fp;
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    int num, i = 0;
+
+    fp = fopen(filename, "r");
+    if (fp == NULL)
+        exit(EXIT_FAILURE);
+    while ((read = getline(&line, &len, fp)) != -1)
+    {
+        num = strtol(line, NULL, 10);
+        jobs[i].job_no = num;
+        printf("%d\n", jobs[i].job_no);
+        i++;
+    }
+    printf("LEFTOVER %d\n", i);
+    fclose(fp);
+    if (line)
+        free(line);
+}
 void get_status_jobs(JOB_INF jobs[], int job_size)
 {
     FILE *fp;
-    char output[300], line[20];
+    char output[300];
 
     pipe_opener(fp, "cat queue.txt |  cut -d ' ' -f 11", output, 0);
-    char *tok;
-    char *delims = "\n";
-    tok = strtok(output, delims);
+    char *line = NULL;
+    ssize_t read;
+    size_t len = 0;
     int j = 0;
-
-    while (getline(line, NULL, ))
+    int a;
+    while ((read = getline(&line, &len, fp)) != -1)
     {
-        printf("HERE\n");
-        int a = strtol(tok, NULL, 10);
-        jobs[j].job_no = a;
-        printf("%d\n", a);
-        tok = strtok(NULL, delims);
-        j++;
-        if (j > job_size)
-            break;
+        //     a = strtol(line, NULL, 10);
+        //     // jobs[j].job_no = a;
+        //     j++;
+        //     if (j > job_size)
+        //         break;
     }
+    // fclose(fp);
+    // if (line)
+    // free(line);
     for (int i = 0; i < job_size; i++)
     {
-
         // printf("JOB NO: %d\n", jobs[i].job_no);
     }
 }
@@ -137,14 +179,14 @@ int extract_job_number(char *sbatch_output)
     return job_no;
 }
 
-void log_to_file(FILE *LOG_FILE, char type, char *msg)
+void log_to_file(FILE *log_file, char type, char *msg)
 {
-    if (LOG_FILE != NULL)
+    if (log_file != NULL)
     {
         time_t now = time(NULL);
         char *time_str = ctime(&now);
         time_str[strlen(time_str) - 1] = '\0';
-        fprintf(LOG_FILE, "[%c]-[%s]: %s\n", type, time_str, msg);
+        fprintf(log_file, "[%c]-[%s]: %s\n", type, time_str, msg);
     }
     else
     {
@@ -152,7 +194,11 @@ void log_to_file(FILE *LOG_FILE, char type, char *msg)
     }
 }
 
-void pipe_opener(FILE *__REUSABLE_PIPE__, char *command, char **output, int silent)
+void list_jobs_in_progress(FILE *source)
+{
+    // first get the jobs from the file
+}
+void pipe_opener(FILE *reusable_pipe, char *command, char *output, int silent)
 {
     if (silent)
     {
@@ -160,16 +206,16 @@ void pipe_opener(FILE *__REUSABLE_PIPE__, char *command, char **output, int sile
     }
     else
     {
-        __REUSABLE_PIPE__ = popen(command, "r");
-        if (__REUSABLE_PIPE__ == NULL)
+        reusable_pipe = popen(command, "r");
+        if (reusable_pipe == NULL)
         {
             perror("Failed to open fipe");
             return;
         }
 
-        fgets(output, 200, __REUSABLE_PIPE__);
+        fgets(output, 200, reusable_pipe);
 
-        int status = pclose(__REUSABLE_PIPE__);
+        int status = pclose(reusable_pipe);
         if (status == -1)
         {
             perror("An error occurred while pipe proces was closed");

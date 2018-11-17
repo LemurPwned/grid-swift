@@ -6,7 +6,7 @@
 #include "../utils/utils.h"
 #include "../structure_defs/job_def.h"
 
-void assert_file_or_directory_existence(char **filename)
+void assert_file_or_directory_existence(char *filename)
 {
     if (access(filename, R_OK | W_OK))
     {
@@ -66,8 +66,15 @@ void test_job_extraction()
     FILE *fp;
     pipe_opener(fp, "cat queue.txt |cut -d ' ' -f 11 | wc -l", job_size, 0);
     int job_num = strtol(job_size, NULL, 10);
-    JOB_INF jobs[job_num];
-    get_status_jobs(jobs, job_num);
+    JOB_INF jobs[12];
+    read_jobs_from_file(jobs, "nq.txt", 13);
+    printf("JOB NO: %d\n", 12);
+    for (int i = 0; i < 13; i++)
+    {
+        printf("%d\n", jobs[i].job_no);
+    }
+
+    // get_status_jobs(jobs, job_num);
 }
 int main(int argc, char *argv[])
 {
