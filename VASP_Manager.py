@@ -137,4 +137,4 @@ class VASPmanager:
 
 
 if __name__ == "__main__":
-    vaspM = VASPmanager("interface.json")
+    vaspM = VASPmanager("config/interface.json")

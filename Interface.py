@@ -46,7 +46,7 @@ class Interface:
 class ParsingStage:
     def __init__(self, interface):
         self.available_argument_list = interface.defined_parameters
-        self.default_dict_path = "default_param_set.json"
+        self.default_dict_path = "config/default_param_set.json"
 
         # immediately read the arguments
         self.resultant_dict = {}
