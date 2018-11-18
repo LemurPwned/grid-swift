@@ -105,7 +105,8 @@ class VASPmanager:
     def run_simulation(self, sbatch_file):
         if os.path.isfile(sbatch_file):
             # run simulation if exists
-            cmd = ["sbatch", sbatch_file]
+            os.chdir(os.path.dirname(sbatch_file))
+            cmd = ["sbatch", os.path.basename(sbatch_file)]
             subprocess.Popen(cmd)
 
     def replacer(self, root_path, file_target, type_regex, substitution):
