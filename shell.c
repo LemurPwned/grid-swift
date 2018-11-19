@@ -9,11 +9,11 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <regex.h>
+#include <stdbool.h>
 
-#include "ssh_conn/ssh_conn.h"
-
-#define STR_CONF_ELEMENTS 6
-#define NUM_CONF_ELEMENTS 3
+FILE *__LOG__FILE__, __REUSABLE_PIPE__;
+char **log_filename;
 
 int fill_numerical_parameter_arrays(double **pm_numerical_list,
                                     char ***pm_string_list,
@@ -29,7 +29,7 @@ int fill_numerical_parameter_arrays(double **pm_numerical_list,
         printf("start: %f, stop: %f\n", pm[i].start, pm[i].stop,
                pm[i].start, pm[i].stop);
         double diff = pm[i].stop - pm[i].start;
-        int number_of_steps = (int)(diff / pm[i].step);
+        int number_of_steps = (int)(diff / pm[i].step) + 1;
         double mod = diff - (double)(number_of_steps)*pm[i].step;
         double list_len = mod == 0.0
                               ? diff + 1
@@ -43,7 +43,7 @@ int fill_numerical_parameter_arrays(double **pm_numerical_list,
             // printf("%g\n", pm_numerical_list[i][j]);
             pm_string_list[i][j] = malloc(MAX_CONF_TEXT_LEN * sizeof(char));
             sprintf(pm_string_list[i][j], "%s %g", pm[i].param_name, pm_numerical_list[i][j]);
-            // printf("PARAM: %s\n", pm_string_list[i][j]);
+            printf("PARAM: %s\n", pm_string_list[i][j]);
         }
         pm_step_nums[i] = number_of_steps;
         // avoid consequent multiplicatiion by zero
@@ -58,9 +58,12 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
     const char *filename = readFile(config_file);
     OOMMF_CONFIG *omf_conf = malloc(sizeof(struct oommf_config));
     oommf_config_reader(filename, omf_conf);
-    printf("%s, %s, %d, %s\n", omf_conf->name, omf_conf->local_script_import_location, omf_conf->core_count,
+    printf("%s, %s, %s, %d, %s\n",
+           omf_conf->name,
+           omf_conf->local_script_import_location,
+           omf_conf->remote_script_location,
+           omf_conf->core_count,
            omf_conf->walltime);
-
     // for every set of parameters make a string and create as separate simulation file
     double **pm_numerical_list;
     char ***pm_string_list;
@@ -99,37 +102,48 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
     // now import file from remote
     printf("Copying file from remote ... \n");
     create_dir(project_name, 0);
-    // char command[MAX_CONF_TEXT_LEN];
-    // sprintf(command, "scp %s %s", omf_conf->remote_script_location, project_name);
-    // system(command);
-    scp_file(omf_conf->remote_script_location, ud->username, ud->hostname, project_name);
+    char command[MAX_CONF_TEXT_LEN];
+    sprintf(command, "cp %s %s", omf_conf->remote_script_location, project_name);
+    system(command);
 
     char filepath[MAX_CONF_TEXT_LEN],
         indir[MAX_CONF_TEXT_LEN],
         final_parameter_name[MAX_CONF_TEXT_LEN],
-        mif_path[MAX_CONF_TEXT_LEN]; // relative path to mif
+        mif_basename[MAX_CONF_TEXT_LEN], // relative path to mif
+        mif_path[MAX_CONF_TEXT_LEN];
 
-    extract_basename(omf_conf->remote_script_location, indir);
-    sprintf(mif_path, "%s/%s", project_name, indir);
-    bzero(indir, sizeof(indir));
+    extract_basename(omf_conf->remote_script_location, mif_basename);
+
+    // strcpy(log_filename, "%s\\GRID.log");
+    // __LOG__FILE__ = fopen(log_filename, "a"); // opens in the append mode
 
     for (int i = 0; i < combinations; i++)
     {
-        // create sub directory
-        strcpy(filepath, project_name);
-        strcat(filepath, DELIMITER);
         // remove spaces for readibility
-        remove_spaces(param_list_string[i], indir);
-        strcat(filepath, indir);
+        replace_space(param_list_string[i], indir);
+        // create path to the directory of a single combination
+        sprintf(filepath, "%s%s%s", project_name, DELIMITER, indir);
+        // create a directory for a parameter combination
         create_dir(filepath, 1);
-        // create file
+
+        // create a new path to the mif
+        sprintf(mif_path, "%s%s%s", filepath, DELIMITER, mif_basename);
+        // copy mif from previous path to the current one
+        bzero(command, sizeof(command));
+        sprintf(command, "cp %s %s", omf_conf->remote_script_location, mif_path);
+        system(command);
+        // prepare the filepath for the script
         strcat(filepath, DELIMITER);
         strcat(filepath, "script.pbs");
         // write a file for simulation
         sprintf(final_parameter_name, "\"%s\"", param_list_string[i]);
         queue_script_writer(omf_conf, filepath, final_parameter_name, mif_path);
-        // TODO: here run script in the background using the filepath
-        printf("sbatch %s\n", filepath);
+
+        bzero(command, sizeof(command));
+        sprintf(command, "sbatch %s\n", filepath);
+        system(command);
+
+        // log_to_file(__LOG__FILE__, 'I', command);
         // clear all paths
         bzero(final_parameter_name, sizeof(final_parameter_name));
         bzero(filepath, sizeof(filepath));

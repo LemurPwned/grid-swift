@@ -64,14 +64,15 @@ int verify_server(ssh_session sess)
   int state;
   state = ssh_is_server_known(sess);
   printf("State %d", state);
-  // switch(state){
-  //     case SSH_KNOWN_HOSTS_OK:
-  //         printf("KNOWN HOST, SAFE SERVER...");
-  //         break;
-  //     default:
-  //         printf("Undefined state, ending...");
-  //         break;
-  // }
+  switch (state)
+  {
+  case SSH_KNOWN_HOSTS_OK:
+    printf("KNOWN HOST, SAFE SERVER...");
+    break;
+  default:
+    printf("Undefined state, ending...");
+    break;
+  }
 }
 
 int show_remote_processes(ssh_session session, const char *cmd)

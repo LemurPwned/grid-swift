@@ -19,7 +19,7 @@ int parse_module_list(const cJSON *module_list, OOMMF_CONFIG *oommf_config)
     {
         arrayItem = cJSON_GetArrayItem(module_list, i);
         // malloc for each element of the array
-        oommf_config->modules[i] = malloc(strlen(arrayItem->valuestring + 1) * sizeof(char));
+        oommf_config->modules[i] = malloc((strlen(arrayItem->valuestring) + 1) * sizeof(char));
         strcpy(oommf_config->modules[i], arrayItem->valuestring);
     }
     return 0;
@@ -169,8 +169,11 @@ int oommf_config_reader(const char *config_file, OOMMF_CONFIG *o_conf)
         o_conf->parameter_number = param_length;
         for (int i = 0; i < param_length; i++)
         {
-            printf("%s: %g to %g by %g\n", o_conf->pm[i].param_name,
-                   o_conf->pm[i].start, o_conf->pm[i].stop, o_conf->pm[i].step);
+            printf("%s: %g to %g by %g\n",
+                   o_conf->pm[i].param_name,
+                   o_conf->pm[i].start,
+                   o_conf->pm[i].stop,
+                   o_conf->pm[i].step);
         }
     }
     else
@@ -223,6 +226,16 @@ void remove_spaces(const char *input, char *result)
         }
     }
     result[j] = '\0';
+}
+
+void replace_space(const char *input, char *result)
+{
+    int i, j = 0;
+    for (i = 0; input[i] != '\0'; i++)
+    {
+        result[i] = isspace((unsigned char)input[i]) ? '_' : input[i];
+    }
+    result[strlen(input)] = '\0';
 }
 
 void extract_basename(char *filepath, char *basename)
