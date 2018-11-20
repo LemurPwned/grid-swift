@@ -1,8 +1,6 @@
 import argparse
 import json
 from multiprocessing import Pool
-from ParsingUtils import ParsingUtils, AnalysisException
-from color_term import ColorCodes
 
 
 class Interface:
@@ -83,8 +81,8 @@ class ParsingStage:
         elif type(default_dict) != dict:
             raise TypeError("Invalid type of entry")
 
-        if self.resultant_dict["view"]:
-            quit()
+        # if self.resultant_dict["view"]:
+        #     quit()
         # overwrite default dict with dict taken from arg parse
         # this line does it, mind the order!
         self.resultant_dict = {**default_dict, **self.resultant_dict}

@@ -62,6 +62,7 @@
       "name": "analyze",
       "short": "a",
       "help": "analyze",
+      "action": "store_true",
       "type": "bool"
     }
   ]
