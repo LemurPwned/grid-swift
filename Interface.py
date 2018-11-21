@@ -6,7 +6,8 @@ from multiprocessing import Pool
 class Interface:
     def __init__(self, specification):
         self.arg_list = specification['specification']
-        self.parsed_args = self.define_input_parameters(specification["description"])
+        self.parsed_args = self.define_input_parameters(
+            specification["description"])
         self.defined_parameters = [x['name'] for x in self.arg_list]
 
     def define_input_parameters(self, desc):
@@ -19,17 +20,17 @@ class Interface:
                                         action=argument['action'])
                 else:
                     parser.add_argument("-"+argument['short'], "--" + argument['name'],
-                        help=argument['help'],
-                        type=self.decode_type(argument['type']))     
+                                        help=argument['help'],
+                                        type=self.decode_type(argument['type']))
             else:
                 if 'action' in argument.keys():
                     parser.add_argument("--" + argument['name'],
-                        help=argument['help'],
-                        action=argument['action'])
+                                        help=argument['help'],
+                                        action=argument['action'])
                 else:
                     parser.add_argument("--" + argument['name'],
-                        help=argument['help'],
-                        type=self.decode_type(argument['type']))
+                                        help=argument['help'],
+                                        type=self.decode_type(argument['type']))
         return parser.parse_args()
 
     def decode_type(self, type_str):
@@ -61,7 +62,8 @@ class ParsingStage:
                 if getattr(self.args, arg_name) is not None:
                     self.set_dict_param(arg_name, getattr(self.args, arg_name))
             except TypeError:
-                print("ASKED FOR NON-EXISTENT VALUE {}".format(arg_name))
+                print(
+                    f"{ColorCodes.RED}ASKED FOR NON-EXISTENT VALUE {arg_name}{ColorCodes.RESET_ALL}")
 
     def set_dict_param(self, param_name, param_val):
         self.resultant_dict[param_name] = param_val
@@ -69,8 +71,8 @@ class ParsingStage:
     def read_json_dict_param(self, filepath):
         with open(filepath, 'r') as f:
             default_dict = json.loads(f.read())
-            print("CORRECT DICT TYPE? {}".format(str(type(default_dict))))
-        print("DEFAULT DICTIONARY PARAMS DETECTED...\n{}".format(default_dict))
+            print(f"CORRECT DICT TYPE? {type(default_dict)}")
+        print(f"DEFAULT DICTIONARY PARAMS DETECTED...\n{default_dict}")
 
         if (not isinstance(default_dict, dict)) or \
                 (not isinstance(self.resultant_dict, dict)):
@@ -89,9 +91,17 @@ class ParsingStage:
 def asynchronous_pool_order(func, args, object_list):
     pool = Pool()
     output_list = []
+    mr_len = len(object_list)
     multiple_results = [pool.apply_async(func, (*args, object_type))
                         for object_type in object_list]
-    for result in multiple_results:
-        value = result.get()
-        output_list.append(value)
+    for i, result in enumerate(multiple_results):
+        try:
+            value = result.get()
+            output_list.append(value)
+            ParsingUtils.flushed_loading_msg(
+                f"Parsing...", i, mr_len)
+        except AnalysisException as e:
+            ParsingUtils.flushed_loading_msg(
+                f"Parsing...", i, mr_len, err_msg=e.msg)
+            output_list.append(e.null_val)
     return output_list

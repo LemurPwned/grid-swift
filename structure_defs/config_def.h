@@ -1,7 +1,7 @@
 #if !defined(CONFIG_DEF)
 #define CONFIG_DEF
 
-#define MAX_CONF_TEXT_LEN 100
+#define MAX_CONF_TEXT_LEN 500
 #define MAX_PARAMETER_NUMBER 5
 #define DELIMITER "/"
 
@@ -9,7 +9,6 @@ typedef struct user_info
 {
     char username[MAX_CONF_TEXT_LEN];
     char hostname[MAX_CONF_TEXT_LEN];
-
 } USER_DATA;
 typedef struct parameter_sweep
 {
