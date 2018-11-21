@@ -64,22 +64,46 @@ class VASPmanager:
             setattr(self, k, v)
 
     def calculate_free_energy(self, root_dir):
-        regex = re.compile('(F=\s+-?\.?)([0-9]+E?\-?\+?[0-9]*)')
-        slurm_out_serach = os.path.join(
-            os.path.join(root_dir, '**'), "slurm*.out")
-        file_candidates = glob.iglob(slurm_out_serach, recursive=True)
-        # csv_writer_file = csv.writer('new_file.csv')
+        regex = re.compile(
+            '(F=\s+)(-?\.?[0-9]+E?\-?\+?[0-9]*\s+)(E0=\s+)(-?\.?[0-9]+E?\-?\+?[0-9]*\s+)')
+
+        csv_writer_root_file = csv.writer(
+            open(f'{os.path.basename(root_dir)}_res.csv', 'wb'), delimiter=';')
         res_list = []
-        for filename in file_candidates:
-            with open(filename, 'r') as f:
-                p = str(subprocess.check_output(
-                    ['tail', '-n', '5', filename])).split('\\n')[0]
-                m = re.match(regex, p)
-                print(m)
-                if m is not None:
-                    print(m.group(1))
-                    # res_list.append([filename, m.])
-                print("============ NEXT FILE ============")
+        dict_res = {}
+        for subfolder in ['p', 'ap']:
+            dict_res[subfolder]['F'] = []
+            dict_res[subfolder]['E'] = []
+            dict_res[subfolder]['filename']
+            subfolder_path = os.path.join(root_dir, subfolder)
+            slurm_out_serach = os.path.join(
+                os.path.join(subfolder_path, '**'), "slurm*.out")
+            file_candidates = glob.iglob(slurm_out_serach, recursive=True)
+            if file_candidates is None:
+                raise ValueError(f"No results found in subfolder {subfolder}")
+            for filename in file_candidates:
+                with open(filename, 'r') as f:
+                    p = subprocess.check_output(
+                        ['tail', '-n', '10', filename])
+                    p = p.decode("utf-8").split('\\n')
+                    for el in p:
+                        m = re.search(regex, el)
+                        if m is not None:
+                            print(m.group(2), m.group(4))
+                            dict_res[subfolder]['F'].append(float(m.group(2)))
+                            dict_res[subfolder]['E'].append(float(m.group(4)))
+                            dict_res[subfolder]['filename'].append(
+                                os.path.basename(filename))
+
+            DE = [eap - ep for ep, eap in zip(
+                dict_res['p']['E'], dict_keys['ap']['E'])]
+            DF = [fap - fp for fp, fap in zip(
+                dict_res['p']['F'], dict_keys['ap']['F'])]
+
+        cols = ['filename', 'F', 'E', 'DF', 'DE']
+        csv_writer_root_file.writerow(cols)
+        csv_writer_root_file.writerows(dict_res['p']['filename'], dict_res['p']['E'], dict_res['ap']['E'], DE,
+                                       dict_res['p']['F'], dict_res['ap']['F'], DF)
 
     def extract_arguments_from_json(self, filepath):
         with open(filepath, 'r') as f:
