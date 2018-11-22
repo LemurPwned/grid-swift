@@ -19,9 +19,9 @@ class VASPmanager:
         self.set_inner_interface_specification(specification)
         self.set_parameters(**self.startup_dict)
 
-        if self.analyze:
-            self.check_dst_dir()
-            self.calculate_free_energy(self.dst_dir)
+        if (self.analyze is not None) and (len(self.analyze) == 2):
+            print(self.analyze)
+            self.calculate_free_energy(self.analyze)
             quit()
         if self.copy:
             self.check_dst_dir()
@@ -63,53 +63,67 @@ class VASPmanager:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def calculate_free_energy(self, root_dir):
+    def match_paths(self, paths):
+        matching_paths = []
+        for path in paths[0]:
+            longest_match_len = 0 
+            current_match = None
+            for second_path in paths[1]:
+                if len(os.path.commonpath([path, second_path])) > longest_match_len:
+                    longest_match_len = len(os.path.commonpath([path, second_path]))
+                    current_match = (path, second_path)
+            if current_match == None:
+                raise ValueError("File has not been matched")
+            else:
+                matching_paths.append(current_match)
+        return matching_paths
+    
+    def calculate_free_energy(self, root_dirs):
         regex = re.compile(
             '(F=\s+)(-?\.?[0-9]+E?\-?\+?[0-9]*\s+)(E0=\s+)(-?\.?[0-9]+E?\-?\+?[0-9]*\s+)')
-
         res_list = []
-        dict_res = {'p': {}, 'ap': {}}
-        for subfolder in ['p', 'ap']:
-
-            dict_res[subfolder]['F'] = []
-            dict_res[subfolder]['E'] = []
-            dict_res[subfolder]['filename'] = []
-            subfolder_path = os.path.join(root_dir, subfolder)
-            print(subfolder_path)
-            slurm_out_serach = os.path.join(
-                os.path.join(subfolder_path, '**'), "slurm*.out")
-            print(slurm_out_serach)
-            file_candidates = glob.iglob(slurm_out_serach, recursive=True)
-            if file_candidates is None:
-                raise ValueError(f"No results found in subfolder {subfolder}")
-            for filename in file_candidates:
-                print(filename)
+        # oszicar_search = os.path.join(
+        #     os.path.join(root_dirs[0], '**'), "OSZICAR")
+        oszicar_search = root_dirs[0] + '**/OSZICAR'
+        p_file_search = glob.glob(oszicar_search, recursive=True)
+        # oszicar_search = os.path.join(
+        #     os.path.join(root_dirs[1], '**'), "OSZICAR")
+        oszicar_search = root_dirs[1] + '**/OSZICAR'
+        ap_file_search = glob.glob(oszicar_search, recursive=True)
+        assert len(p_file_search) > 0
+        assert len(p_file_search) == len(ap_file_search)
+        matches = self.match_paths((p_file_search, ap_file_search))
+        
+        result_list = []
+        for file_pair in matches:
+            current_row = []
+            vals = []
+            for filename in file_pair:
                 with open(filename, 'r') as f:
-                    p = subprocess.check_output(
-                        ['tail', '-n', '10', filename])
-                    p = p.decode("utf-8").split('\\n')
-                    for el in p:
-                        m = re.search(regex, el)
-                        if m is not None:
-                            print(m.group(2), m.group(4))
-                            dict_res[subfolder]['F'].append(float(m.group(2)))
-                            dict_res[subfolder]['E'].append(float(m.group(4)))
-                            dict_res[subfolder]['filename'].append(
-                                os.path.dirname(filename))
-        assert len(dict_res['p']['F']) == len(dict_res['ap']['F'])
-        assert len(dict_res['p']['E']) == len(dict_res['ap']['E'])
-        DE = [eap - ep for ep, eap in zip(
-            dict_res['p']['E'], dict_res['ap']['E'])]
-        DF = [fap - fp for fp, fap in zip(
-            dict_res['p']['F'], dict_res['ap']['F'])]
-        cols = ['filename', 'pF', 'aF', 'DF', 'pE', 'aE', 'DE']
-        with open(f'{os.path.basename(root_dir)}_res.csv', 'w') as f:
+                    x = f.readlines() # ineffective, change later
+                    try:
+                        p = x[-1]
+                    except IndexError:
+                        print(f"Problem with file {filename}, skipping pair {file_pair}")
+                        break
+                    m = re.search(regex, p)
+                    if m is not None:
+                        vals.append(float(m.group(2))) # F
+                        vals.append(float(m.group(4))) # E
+            try:
+                result_list.append([os.path.commonpath(file_pair),vals[0], vals[2], vals[0]-vals[2], vals[1], vals[3], vals[1]-vals[3]])
+            except IndexError:
+                pass 
+        cols = ['filename', 'pF', 'pE', 'aF', 'aE','DF', 'DE']
+        savepoint_ = os.path.join(os.path.commonpath(root_dirs), 
+        f'{os.path.split(os.path.dirname(root_dirs[0]))[1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[1]}_res.csv')
+        # print(f'{os.path.split(root_dirs[0])[1]}_vs_{os.path.split(root_dirs[0])[1]}_res.csv')
+        
+        with open(savepoint_, 'w') as f:
             csv_writer_root_file = csv.writer(
                 f, delimiter=',', lineterminator='\n')
             csv_writer_root_file.writerow(cols)
-            csv_writer_root_file.writerows(zip(dict_res['p']['filename'], dict_res['p']['E'],
-                                               dict_res['ap']['E'], DE,
-                                               dict_res['p']['F'], dict_res['ap']['F'], DF))
+            csv_writer_root_file.writerows(result_list)
 
     def extract_arguments_from_json(self, filepath):
         with open(filepath, 'r') as f:

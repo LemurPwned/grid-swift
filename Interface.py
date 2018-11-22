@@ -13,7 +13,12 @@ class Interface:
     def define_input_parameters(self, desc):
         parser = argparse.ArgumentParser(description=desc)
         for argument in self.arg_list:
-            if 'short' in argument.keys():
+            if 'nargs' in argument.keys():
+                parser.add_argument("-"+argument['short'],"--" + argument['name'],
+                                    help=argument['help'],
+                                    nargs=argument['nargs'],
+                                    type=self.decode_type(argument['type']))
+            elif 'short' in argument.keys():
                 if 'action' in argument.keys():
                     parser.add_argument("-"+argument['short'], "--" + argument['name'],
                                         help=argument['help'],
@@ -31,6 +36,9 @@ class Interface:
                     parser.add_argument("--" + argument['name'],
                                         help=argument['help'],
                                         type=self.decode_type(argument['type']))
+
+
+
         return parser.parse_args()
 
     def decode_type(self, type_str):
