@@ -169,8 +169,11 @@ int oommf_config_reader(const char *config_file, OOMMF_CONFIG *o_conf)
         o_conf->parameter_number = param_length;
         for (int i = 0; i < param_length; i++)
         {
-            printf("%s: %g to %g by %g\n", o_conf->pm[i].param_name,
-                   o_conf->pm[i].start, o_conf->pm[i].stop, o_conf->pm[i].step);
+            printf("%s: %g to %g by %g\n",
+                   o_conf->pm[i].param_name,
+                   o_conf->pm[i].start,
+                   o_conf->pm[i].stop,
+                   o_conf->pm[i].step);
         }
     }
     else

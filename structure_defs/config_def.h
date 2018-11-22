@@ -9,7 +9,6 @@ typedef struct user_info
 {
     char username[MAX_CONF_TEXT_LEN];
     char hostname[MAX_CONF_TEXT_LEN];
-
 } USER_DATA;
 typedef struct parameter_sweep
 {

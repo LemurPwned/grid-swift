@@ -9,6 +9,11 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <regex.h>
+#include <stdbool.h>
+
+FILE *__LOG__FILE__, __REUSABLE_PIPE__;
+char **log_filename;
 
 int fill_numerical_parameter_arrays(double **pm_numerical_list,
                                     char ***pm_string_list,
@@ -53,7 +58,11 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
     const char *filename = readFile(config_file);
     OOMMF_CONFIG *omf_conf = malloc(sizeof(struct oommf_config));
     oommf_config_reader(filename, omf_conf);
-    printf("%s, %s, %s, %d, %s\n", omf_conf->name, omf_conf->local_script_import_location, omf_conf->remote_script_location, omf_conf->core_count,
+    printf("%s, %s, %s, %d, %s\n",
+           omf_conf->name,
+           omf_conf->local_script_import_location,
+           omf_conf->remote_script_location,
+           omf_conf->core_count,
            omf_conf->walltime);
     // for every set of parameters make a string and create as separate simulation file
     double **pm_numerical_list;
@@ -105,6 +114,9 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
 
     extract_basename(omf_conf->remote_script_location, mif_basename);
 
+    // strcpy(log_filename, "%s\\GRID.log");
+    // __LOG__FILE__ = fopen(log_filename, "a"); // opens in the append mode
+
     for (int i = 0; i < combinations; i++)
     {
         // remove spaces for readibility
@@ -130,6 +142,8 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
         bzero(command, sizeof(command));
         sprintf(command, "sbatch %s", filepath);
         system(command);
+
+        // log_to_file(__LOG__FILE__, 'I', command);
         // clear all paths
         bzero(final_parameter_name, sizeof(final_parameter_name));
         bzero(filepath, sizeof(filepath));

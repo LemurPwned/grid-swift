@@ -3,7 +3,7 @@
     "cont": false,
     "run": false,
     "copy": false,
-    "replace": true,
+    "replace": false,
     "dst_dir": null,
     "src_dir": null,
     "replacements": [["INCAR", "(ICHARG = )([0-9]+)", "ICHARG = 2"]]
