@@ -131,7 +131,7 @@ class VASPmanager:
                 pass
         cols = ['filename', 'pF', 'pE', 'aF', 'aE', 'DF', 'DE']
         savepoint_ = os.path.join(os.path.commonpath(root_dirs),
-                                  f'{os.path.split(os.path.dirname(root_dirs[0]))[1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[1]}_res.csv')
+                                  f'{os.path.split(os.path.dirname(root_dirs[0]))[-1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[-1]}_res.csv')
 
         with open(savepoint_, 'w') as f:
             csv_writer_root_file = csv.writer(
