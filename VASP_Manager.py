@@ -82,12 +82,8 @@ class VASPmanager:
         regex = re.compile(
             '(F=\s+)(-?\.?[0-9]+E?\-?\+?[0-9]*\s+)(E0=\s+)(-?\.?[0-9]+E?\-?\+?[0-9]*\s+)')
         res_list = []
-        # oszicar_search = os.path.join(
-        #     os.path.join(root_dirs[0], '**'), "OSZICAR")
         oszicar_search = root_dirs[0] + '**/OSZICAR'
         p_file_search = glob.glob(oszicar_search, recursive=True)
-        # oszicar_search = os.path.join(
-        #     os.path.join(root_dirs[1], '**'), "OSZICAR")
         oszicar_search = root_dirs[1] + '**/OSZICAR'
         ap_file_search = glob.glob(oszicar_search, recursive=True)
         assert len(p_file_search) > 0

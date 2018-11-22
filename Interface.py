@@ -1,7 +1,7 @@
 import argparse
 import json
 from multiprocessing import Pool
-
+import os
 
 class Interface:
     def __init__(self, specification):
@@ -36,9 +36,6 @@ class Interface:
                     parser.add_argument("--" + argument['name'],
                                         help=argument['help'],
                                         type=self.decode_type(argument['type']))
-
-
-
         return parser.parse_args()
 
     def decode_type(self, type_str):
@@ -61,7 +58,12 @@ class ParsingStage:
         self.resultant_dict = {}
         self.args = interface.parsed_args
         self.args_handler()
-
+        if self.resultant_dict['config_file'] is not None:
+            print("Detected new config file...")
+            if os.path.isfile(self.resultant_dict['config_file']):
+                self.default_dict_path = self.resultant_dict['config_file']
+            else:
+                print("Indicated config path does not lead to a file")
         self.read_json_dict_param(self.default_dict_path)
 
     def args_handler(self):
@@ -79,7 +81,6 @@ class ParsingStage:
     def read_json_dict_param(self, filepath):
         with open(filepath, 'r') as f:
             default_dict = json.loads(f.read())
-            print(f"CORRECT DICT TYPE? {type(default_dict)}")
         print(f"DEFAULT DICTIONARY PARAMS DETECTED...\n{default_dict}")
 
         if (not isinstance(default_dict, dict)) or \
@@ -89,8 +90,6 @@ class ParsingStage:
         elif type(default_dict) != dict:
             raise TypeError("Invalid type of entry")
 
-        # if self.resultant_dict["view"]:
-        #     quit()
         # overwrite default dict with dict taken from arg parse
         # this line does it, mind the order!
         self.resultant_dict = {**default_dict, **self.resultant_dict}
