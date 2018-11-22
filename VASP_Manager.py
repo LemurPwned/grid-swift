@@ -19,10 +19,13 @@ class VASPmanager:
         self.set_inner_interface_specification(specification)
         self.set_parameters(**self.startup_dict)
 
-        if (self.analyze is not None) and (len(self.analyze) == 2):
-            print(self.analyze)
-            self.calculate_free_energy(self.analyze)
-            quit()
+        try:
+            if (self.analyze is not None) and (len(self.analyze) == 2):
+                print(self.analyze)
+                self.calculate_free_energy(self.analyze)
+                quit()
+        except AttributeError:
+            pass
         if self.copy:
             self.check_dst_dir()
             if self.src_dir is None:

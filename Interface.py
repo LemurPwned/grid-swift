@@ -3,6 +3,7 @@ import json
 from multiprocessing import Pool
 import os
 
+
 class Interface:
     def __init__(self, specification):
         self.arg_list = specification['specification']
@@ -14,7 +15,7 @@ class Interface:
         parser = argparse.ArgumentParser(description=desc)
         for argument in self.arg_list:
             if 'nargs' in argument.keys():
-                parser.add_argument("-"+argument['short'],"--" + argument['name'],
+                parser.add_argument("-"+argument['short'], "--" + argument['name'],
                                     help=argument['help'],
                                     nargs=argument['nargs'],
                                     type=self.decode_type(argument['type']))
@@ -58,12 +59,15 @@ class ParsingStage:
         self.resultant_dict = {}
         self.args = interface.parsed_args
         self.args_handler()
-        if self.resultant_dict['config_file'] is not None:
-            print("Detected new config file...")
-            if os.path.isfile(self.resultant_dict['config_file']):
-                self.default_dict_path = self.resultant_dict['config_file']
-            else:
-                print("Indicated config path does not lead to a file")
+        try:
+            if self.resultant_dict['config_file'] is not None:
+                print("Detected new config file...")
+                if os.path.isfile(self.resultant_dict['config_file']):
+                    self.default_dict_path = self.resultant_dict['config_file']
+                else:
+                    print("Indicated config path does not lead to a file")
+        except KeyError:
+            pass
         self.read_json_dict_param(self.default_dict_path)
 
     def args_handler(self):
