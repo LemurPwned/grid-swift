@@ -69,55 +69,59 @@ class VASPmanager:
     def match_paths(self, paths):
         matching_paths = []
         for path in paths[0]:
-            longest_match_len = 0 
+            longest_match_len = 0
             current_match = None
             for second_path in paths[1]:
                 if len(os.path.commonpath([path, second_path])) > longest_match_len:
-                    longest_match_len = len(os.path.commonpath([path, second_path]))
+                    longest_match_len = len(
+                        os.path.commonpath([path, second_path]))
                     current_match = (path, second_path)
             if current_match == None:
                 raise ValueError("File has not been matched")
             else:
                 matching_paths.append(current_match)
         return matching_paths
-    
+
     def calculate_free_energy(self, root_dirs):
         regex = re.compile(
             '(F=\s+)(-?\.?[0-9]+E?\-?\+?[0-9]*\s+)(E0=\s+)(-?\.?[0-9]+E?\-?\+?[0-9]*\s+)')
         res_list = []
-        oszicar_search = root_dirs[0] + '**/OSZICAR'
+        # oszicar_search = root_dirs[0] + '**/OSZICAR'
+        oszicar_search = os.path.join(root_dirs[0], '**', 'OSZICAR')
         p_file_search = glob.glob(oszicar_search, recursive=True)
-        oszicar_search = root_dirs[1] + '**/OSZICAR'
+        oszicar_search = os.path.join(root_dirs[1], '**', 'OSZICAR')
         ap_file_search = glob.glob(oszicar_search, recursive=True)
         assert len(p_file_search) > 0
         assert len(p_file_search) == len(ap_file_search)
         matches = self.match_paths((p_file_search, ap_file_search))
-        
+
         result_list = []
         for file_pair in matches:
             current_row = []
             vals = []
             for filename in file_pair:
                 with open(filename, 'r') as f:
-                    x = f.readlines() # ineffective, change later
+                    x = f.readlines()  # ineffective, change later
                     try:
                         p = x[-1]
                     except IndexError:
-                        print(f"Problem with file {filename}, skipping pair {file_pair}")
+                        print(
+                            f"Problem with file {filename}, skipping pair {file_pair}")
                         break
                     m = re.search(regex, p)
                     if m is not None:
-                        vals.append(float(m.group(2))) # F
-                        vals.append(float(m.group(4))) # E
+                        vals.append(float(m.group(2)))  # F
+                        vals.append(float(m.group(4)))  # E
             try:
-                result_list.append([os.path.commonpath(file_pair),vals[0], vals[2], vals[0]-vals[2], vals[1], vals[3], vals[1]-vals[3]])
+                result_list.append([os.path.commonpath(
+                    file_pair), vals[0], vals[2], vals[0]-vals[2], vals[1], vals[3], vals[1]-vals[3]])
             except IndexError:
-                pass 
-        cols = ['filename', 'pF', 'pE', 'aF', 'aE','DF', 'DE']
-        savepoint_ = os.path.join(os.path.commonpath(root_dirs), 
-        f'{os.path.split(os.path.dirname(root_dirs[0]))[1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[1]}_res.csv')
+                pass
+        cols = ['filename', 'pF', 'pE', 'aF', 'aE', 'DF', 'DE']
+        savepoint_ = os.path.join(os.path.commonpath(root_dirs),
+                                  f'{os.path.split(os.path.dirname(root_dirs[0]))[1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[1]}_res.csv')
         # print(f'{os.path.split(root_dirs[0])[1]}_vs_{os.path.split(root_dirs[0])[1]}_res.csv')
-        
+
         with open(savepoint_, 'w') as f:
             csv_writer_root_file = csv.writer(
                 f, delimiter=',', lineterminator='\n')
