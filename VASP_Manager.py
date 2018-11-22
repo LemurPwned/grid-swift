@@ -75,9 +75,7 @@ class VASPmanager:
                 match = self.find_common_substring(path, second_path)
                 if len(match) > longest_match_len:
                     longest_match_len = len(match)
-                    current_match = os.dirname(match)
-                    if current_match is None:
-                        current_match = match
+                    current_match = match
             if current_match == None:
                 raise ValueError("File has not been matched")
             else:
@@ -107,13 +105,15 @@ class VASPmanager:
         assert len(p_file_search) > 0
         assert len(p_file_search) == len(ap_file_search)
         matches = self.match_paths((p_file_search, ap_file_search))
-
         result_list = []
         for file_pair in matches:
             current_row = []
             vals = []
-            for filename in file_pair:
-                with open(filename, 'r') as f:
+            for i in range(2):
+                if file_pair[0] == '/':
+                    file_pair = file_pair[1:]
+                filepath = os.path.join(root_dirs[i], file_pair)
+                with open(filepath, 'r') as f:
                     x = f.readlines()  # ineffective, change later
                     try:
                         p = x[-1]
@@ -126,8 +126,7 @@ class VASPmanager:
                         vals.append(float(m.group(2)))  # F
                         vals.append(float(m.group(4)))  # E
             try:
-                result_list.append([self.find_common_substring(
-                    *file_pair), vals[0], vals[2], vals[0]-vals[2], vals[1], vals[3], vals[1]-vals[3]])
+                result_list.append([os.path.dirname(file_pair), vals[0], vals[2], vals[0]-vals[2], vals[1], vals[3], vals[1]-vals[3]])
             except IndexError:
                 pass
         cols = ['filename', 'pF', 'pE', 'aF', 'aE', 'DF', 'DE']
