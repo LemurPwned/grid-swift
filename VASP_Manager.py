@@ -24,7 +24,8 @@ class VASPmanager:
                 print(self.analyze)
                 self.calculate_free_energy(self.analyze)
                 quit()
-        except AttributeError:
+        except AttributeError as e:
+            print(e)
             pass
         if self.copy:
             self.check_dst_dir()
@@ -130,9 +131,13 @@ class VASPmanager:
             except IndexError:
                 pass
         cols = ['filename', 'pF', 'pE', 'aF', 'aE', 'DF', 'DE']
+        if root_dirs[0][-1] != '/':
+           root_dirs[0] += '/'
+        if root_dirs[1][-1] != '/':
+           root_dirs[1] += '/'
         savepoint_ = os.path.join(os.path.commonpath(root_dirs),
                                   f'{os.path.split(os.path.dirname(root_dirs[0]))[-1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[-1]}_res.csv')
-
+        print(f"Saving in {savepoint_}")
         with open(savepoint_, 'w') as f:
             csv_writer_root_file = csv.writer(
                 f, delimiter=',', lineterminator='\n')
