@@ -75,9 +75,9 @@ class VASPmanager:
                 match = self.find_common_substring(path, second_path)
                 if len(match) > longest_match_len:
                     longest_match_len = len(match)
-                    current_match = os.dirname(longest_match_len)
+                    current_match = os.dirname(match)
                     if current_match is None:
-                        current_match = longest_match_len
+                        current_match = match
             if current_match == None:
                 raise ValueError("File has not been matched")
             else:
