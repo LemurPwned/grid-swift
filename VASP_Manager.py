@@ -120,7 +120,7 @@ class VASPmanager:
                         p = x[-1]
                     except IndexError:
                         print(
-                            f"Problem with file {filename}, skipping pair {file_pair}")
+                            f"Problem with file {filepath}, skipping pair {file_pair}")
                         break
                     m = re.search(regex, p)
                     if m is not None:
