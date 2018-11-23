@@ -73,7 +73,7 @@
       "nargs": 2
     },
     {
-      "name": "ion-config",
+      "name": "ion_config",
       "help": "configuration file for ion compare",
       "type": "str"
     }

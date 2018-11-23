@@ -28,8 +28,10 @@ class VASPmanager:
             print(e)
             pass
         try:
-            if (len(self.ion) == 2) and (self.ion_config is not None):
-               print(self.ion)
+            if (len(self.ions) == 2) and (self.ion_config is not None):
+               print(self.ions)
+               conf = json.load(open(self.ion_config, 'r'))
+               self.ion_compare(self.ions, conf)
                quit()
         except AttributeError as e:
             print(e)
@@ -107,14 +109,14 @@ class VASPmanager:
         for ion_folder in config_file['ions']:
             # find folder
             e = []
-            for i, folder in root_dirs:
+            for i, folder in enumerate(root_dirs):
                 outcar_file = os.path.join(
                     root_dirs[i], ion_folder['folder'], 'OUTCAR')
                 for atom in ion_folder['atoms']:
                     # extract each atom for each file
                     e.append(self.get_ion_energy(
-                        outcar_file, [i]))
-            diff_list.append([ion_folder, *e, e[0] - e[2],
+                        outcar_file, atom))
+            diff_list.append([ion_folder['folder'], *e, e[0] - e[2],
                               e[1] - e[3], e[0] + e[1] - e[2] - e[3]])
         savepoint_ = os.path.join(os.path.commonpath(root_dirs),
                                   f'{os.path.split(os.path.dirname(root_dirs[0]))[1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[1]}_ion_comp.csv')
@@ -131,9 +133,9 @@ class VASPmanager:
             f'(Ion:\s+)({ion_number})(\s+E_soc:\s+)(-?[0-9]?.?[0-9]+)')
         with open(filename, 'r') as f:
             for line in f:
-                m = re.search(line)
+                m = re.search(regex, line)
                 if m is not None:
-                    return float(m.groups())
+                    return float(m.group(4))
 
     def calculate_free_energy(self, root_dirs):
         regex = re.compile(
