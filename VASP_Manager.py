@@ -7,7 +7,7 @@ import shutil
 import argparse
 import subprocess
 import json
-
+import numpy as np
 from Interface import Interface, ParsingStage
 
 
@@ -24,7 +24,8 @@ class VASPmanager:
                 print(self.analyze)
                 self.calculate_free_energy(self.analyze)
                 quit()
-        except AttributeError:
+        except AttributeError as e:
+            print(e)
             pass
         if self.copy:
             self.check_dst_dir()
@@ -75,9 +76,7 @@ class VASPmanager:
                 match = self.find_common_substring(path, second_path)
                 if len(match) > longest_match_len:
                     longest_match_len = len(match)
-                    current_match = os.dirname(match)
-                    if current_match is None:
-                        current_match = match
+                    current_match = match
             if current_match == None:
                 raise ValueError("File has not been matched")
             else:
@@ -140,33 +139,40 @@ class VASPmanager:
         assert len(p_file_search) > 0
         assert len(p_file_search) == len(ap_file_search)
         matches = self.match_paths((p_file_search, ap_file_search))
-
         result_list = []
         for file_pair in matches:
             current_row = []
             vals = []
-            for filename in file_pair:
-                with open(filename, 'r') as f:
+            for i in range(2):
+                if file_pair[0] == '/':
+                    file_pair = file_pair[1:]
+                filepath = os.path.join(root_dirs[i], file_pair)
+                with open(filepath, 'r') as f:
                     x = f.readlines()  # ineffective, change later
                     try:
                         p = x[-1]
                     except IndexError:
                         print(
-                            f"Problem with file {filename}, skipping pair {file_pair}")
+                            f"Problem with file {filepath}, skipping pair {file_pair}")
                         break
                     m = re.search(regex, p)
                     if m is not None:
                         vals.append(float(m.group(2)))  # F
                         vals.append(float(m.group(4)))  # E
             try:
-                result_list.append([self.find_common_substring(
-                    *file_pair), vals[0], vals[2], vals[0]-vals[2], vals[1], vals[3], vals[1]-vals[3]])
+                result_list.append([os.path.dirname(file_pair), vals[0], vals[2], vals[0]-vals[2], vals[1], vals[3], vals[1]-vals[3]])
             except IndexError:
                 pass
         cols = ['filename', 'pF', 'pE', 'aF', 'aE', 'DF', 'DE']
+        if root_dirs[0][-1] != '/':
+           root_dirs[0] += '/'
+        if root_dirs[1][-1] != '/':
+           root_dirs[1] += '/'
         savepoint_ = os.path.join(os.path.commonpath(root_dirs),
-                                  f'{os.path.split(os.path.dirname(root_dirs[0]))[1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[1]}_res.csv')
-
+                                  f'{os.path.split(os.path.dirname(root_dirs[0]))[-1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[-1]}_res.csv')
+        print(f"Saving in {savepoint_}")
+        result_list = np.array(result_list)
+        result_list = result_list[result_list[:, 0].argsort()]
         with open(savepoint_, 'w') as f:
             csv_writer_root_file = csv.writer(
                 f, delimiter=',', lineterminator='\n')
