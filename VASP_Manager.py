@@ -119,7 +119,7 @@ class VASPmanager:
             diff_list.append([ion_folder['folder'], *e, e[0] - e[2],
                               e[1] - e[3], e[0] + e[1] - e[2] - e[3]])
         savepoint_ = os.path.join(os.path.commonpath(root_dirs),
-                                  f'{os.path.split(os.path.dirname(root_dirs[0]))[1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[1]}_ion_comp.csv')
+                                  f'{os.path.split(os.path.dirname(root_dirs[0]))[-1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[-1]}_res.csv')
 
         cols = ['filename', 'A11', 'A12', 'B11', 'B12', 'A11-A12', 'B11-B12', 'A11+A12-B11-B22']
         with open(savepoint_, 'w') as f:
