@@ -64,6 +64,18 @@
       "help": "analyze",
       "type": "list",
       "nargs": 2
+    },
+    {
+      "name": "ions",
+      "short": "i",
+      "help": "compare ions",
+      "type": "list",
+      "nargs": 2
+    },
+    {
+      "name": "ion-config",
+      "help": "configuration file for ion compare",
+      "type": "str"
     }
   ]
 }
