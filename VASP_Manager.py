@@ -27,6 +27,13 @@ class VASPmanager:
         except AttributeError as e:
             print(e)
             pass
+        try:
+            if (len(self.ion) == 2) and (self.ion_config is not None):
+               print(self.ion)
+               quit()
+        except AttributeError as e:
+            print(e)
+            pass
         if self.copy:
             self.check_dst_dir()
             if self.src_dir is None:
