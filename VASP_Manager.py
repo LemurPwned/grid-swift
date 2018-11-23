@@ -96,6 +96,39 @@ class VASPmanager:
             return string1
         return string1[s1_i+1:]
 
+    def ion_compare(self, root_dirs, config_file):
+        diff_list = []
+        for ion_folder in config_file['ions']:
+            # find folder
+            e = []
+            for i, folder in root_dirs:
+                outcar_file = os.path.join(
+                    root_dirs[i], ion_folder['folder'], 'OUTCAR')
+                for atom in ion_folder['atoms']:
+                    # extract each atom for each file
+                    e.append(self.get_ion_energy(
+                        outcar_file, [i]))
+            diff_list.append([ion_folder, *e, e[0] - e[2],
+                              e[1] - e[3], e[0] + e[1] - e[2] - e[3]])
+        savepoint_ = os.path.join(os.path.commonpath(root_dirs),
+                                  f'{os.path.split(os.path.dirname(root_dirs[0]))[1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[1]}_ion_comp.csv')
+
+        cols = ['filename', 'A11', 'A12', 'B11', 'B12', 'A11-A12', 'B11-B12', 'A11+A12-B11-B22']
+        with open(savepoint_, 'w') as f:
+            csv_writer_root_file = csv.writer(
+                f, delimiter=',', lineterminator='\n')
+            csv_writer_root_file.writerow(cols)
+            csv_writer_root_file.writerows(diff_list)
+
+    def get_ion_energy(self, filename, ion_number):
+        regex = re.compile(
+            f'(Ion:\s+)({ion_number})(\s+E_soc:\s+)(-?[0-9]?.?[0-9]+)')
+        with open(filename, 'r') as f:
+            for line in f:
+                m = re.search(line)
+                if m is not None:
+                    return float(m.groups())
+
     def calculate_free_energy(self, root_dirs):
         regex = re.compile(
             '(F=\s+)(-?\.?[0-9]+E?\-?\+?[0-9]*\s+)(E0=\s+)(-?\.?[0-9]+E?\-?\+?[0-9]*\s+)')
