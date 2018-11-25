@@ -138,10 +138,7 @@ class VASPmanager:
            root_dirs[1] += '/'
         savepoint_ = os.path.join(os.path.commonpath(root_dirs),
         f'{os.path.split(os.path.dirname(root_dirs[0]))[-1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[-1]}_ion_compare.csv')
-
-        cols = ['filename', 'A11', 'A12', 'B11', 'B12', 'A11-A12', 'B11-B12', 'A11+A12-B11-B22']
         print(f"Saving in {savepoint_}")
-        savepoint_ = "test.csv"
         with open(savepoint_, 'w') as f:
             csv_writer_root_file = csv.writer(
                 f, delimiter=',', lineterminator='\n')
