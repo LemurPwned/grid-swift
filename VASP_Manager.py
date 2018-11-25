@@ -8,6 +8,7 @@ import argparse
 import subprocess
 import json
 import numpy as np
+from itertools import combinations
 from Interface import Interface, ParsingStage
 
 
@@ -104,8 +105,19 @@ class VASPmanager:
             return string1
         return string1[s1_i+1:]
 
+    def compose_ions(self, ions):
+        result_list = []
+        assert len(ions)%2 == 0
+        ions_per_state = int(len(ions)/2) # assume there are 2 states
+        for i in range(ions_per_state):
+            result_list.append(ions[i] - ions[ions_per_state+i])
+        result_list.append(np.sum(ions[:ions_per_state] - np.sum(ions[ions_per_state:])))
+        return result_list
+
     def ion_compare(self, root_dirs, config_file):
         diff_list = []
+        states = 2
+        # above assumes there is an equal number of ions in the file
         for ion_folder in config_file['ions']:
             # find folder
             e = []
@@ -116,21 +128,24 @@ class VASPmanager:
                     # extract each atom for each file
                     e.append(self.get_ion_energy(
                         outcar_file, atom))
-            diff_list.append([ion_folder['folder'], *e, e[0] - e[2],
-                              e[1] - e[3], e[0] + e[1] - e[2] - e[3]])
+            diff_list.append([ion_folder['folder'], *e, *self.compose_ions(e)])
+        names_list = [f"state1_ion{i}_state2_ion{i}" for i in range(len(config_file['ions'][0]['atoms']))]
+        names_list.append("sum(state1)-sum(state2)")
+        names_list = ["filename", *[f"state{j}_ion{i}" for j in range(states) for i in range(len(config_file['ions'][0]['atoms']))]] + names_list
         if root_dirs[0][-1] != '/':
            root_dirs[0] += '/'
         if root_dirs[1][-1] != '/':
            root_dirs[1] += '/'
         savepoint_ = os.path.join(os.path.commonpath(root_dirs),
-                                  f'{os.path.split(os.path.dirname(root_dirs[0]))[-1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[-1]}_ion_compare.csv')
+        f'{os.path.split(os.path.dirname(root_dirs[0]))[-1]}_vs_{os.path.split(os.path.dirname(root_dirs[1]))[-1]}_ion_compare.csv')
 
-        cols = ['filename', 'A11', 'A12', 'B11', 'B12', 'A11-A12', 'B11-B12', 'A11+A12-B11-B22'] 
+        cols = ['filename', 'A11', 'A12', 'B11', 'B12', 'A11-A12', 'B11-B12', 'A11+A12-B11-B22']
         print(f"Saving in {savepoint_}")
+        savepoint_ = "test.csv"
         with open(savepoint_, 'w') as f:
             csv_writer_root_file = csv.writer(
                 f, delimiter=',', lineterminator='\n')
-            csv_writer_root_file.writerow(cols)
+            csv_writer_root_file.writerow(names_list)
             csv_writer_root_file.writerows(diff_list)
 
     def get_ion_energy(self, filename, ion_number):
