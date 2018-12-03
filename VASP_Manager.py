@@ -11,6 +11,13 @@ import numpy as np
 from itertools import combinations
 from Interface import Interface, ParsingStage
 
+required_arguments = {
+    "ions": ["ion_config"],
+    "analyze" : [],
+    "copy": ["src_dir", "dst_dir", "copy_CHGCAR", "cont"],
+    "replace": ["dst_dir"],
+    "run": ["dst_dir]
+                    }
 
 class VASPmanager:
     def __init__(self, filename):
@@ -21,14 +28,16 @@ class VASPmanager:
         self.set_parameters(**self.startup_dict)
 
         try:
+            self.check_required_arguments('analyze')
             if (self.analyze is not None) and (len(self.analyze) == 2):
                 print(self.analyze)
                 self.calculate_free_energy(self.analyze)
                 quit()
-        except AttributeError as e:
+         except AttributeError as e:
             print(e)
             pass
         try:
+            self.check_required_arguments('ions')
             if (len(self.ions) == 2) and (self.ion_config is not None):
                print(self.ions)
                conf = json.load(open(self.ion_config, 'r'))
@@ -129,7 +138,7 @@ class VASPmanager:
                     e.append(self.get_ion_energy(
                         outcar_file, atom))
             diff_list.append([ion_folder['folder'], *e, *self.compose_ions(e)])
-        names_list = [f"state1_ion{i}_state2_ion{i}" for i in range(len(config_file['ions'][0]['atoms']))]
+            names_list = [f"state1_ion{i}_state2_ion{i}" for i in range(len(config_file['ions'][0]['atoms']))]
         names_list.append("sum(state1)-sum(state2)")
         names_list = ["filename", *[f"state{j}_ion{i}" for j in range(states) for i in range(len(config_file['ions'][0]['atoms']))]] + names_list
         if root_dirs[0][-1] != '/':
@@ -288,5 +297,11 @@ class VASPmanager:
                 print("no match in file")
 
 
+    def check_required_arguments(self, arg_name):
+            for dependency in required_arguments[arg_name]:
+                try:
+                    getattr(self, dependency)
+                except AttributeError:
+                    print(f"Used {arg_name} following argument is required: {dependency}")
 if __name__ == "__main__":
     vaspM = VASPmanager("config/interface.json")
