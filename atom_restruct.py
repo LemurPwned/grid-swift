@@ -1,5 +1,6 @@
 import re
 import sys
+import argparse
 import numpy as np
 from functools import reduce
 from colorama import Fore, Style
@@ -7,27 +8,35 @@ from colorama import Fore, Style
 class AtomRestruct:
     def __init__(self):
         self.regex = '\W+'
-        self.lattice_subregex = r'(-?\s+[0-9]+\.?[0-9]+)(-?\s+[0-9]+\.?[0-9]+)(-?\s+[0-9]+\.?[0-9]+)'
+        self.lattice_subregex = r'(-?[0-9]+\.?[0-9]+e?-?[0-9]+)(?:\s+)(-?[0-9]+\.?[0-9]+e?-?[0-9]+)(?:\s+)(-?[0-9]+\.?[0-9]+e?-?[0-9]+)'
 
     def save_poscar(self, filename, poscar):
+        # group lattice
+        poscar['restruct_lattice'].sort(key=lambda pair: pair[1])
+        conf = {}
+        for _, sym in poscar['restruct_lattice']:
+            if sym in conf:
+                conf[sym] +=1
+            else:
+                conf[sym] = 1
         with open(filename, 'w') as f:
             f.write(poscar['name'] + '\n')
             f.write(f"      {str(poscar['scaler'])}\n")
             for row in poscar['basis']:
                 print('    ', file=f, end='')
-                print(*row, sep=', ', file=f, end='')
+                print(*row, sep='  ', file=f, end='')
                 print('\n', file=f, end='')
             a_str = "  "
             b_str = "    "
-            for el in poscar['conf']:
-                a_str += str(el[0]) + '  '
-                b_str += str(el[1]) + '   '
+            for key in conf:
+                a_str += str(key) + '  '
+                b_str += str(conf[key]) + '   '
             f.write(a_str + '\n')
             f.write(b_str + '\n')
             f.write('Cartesian\n')
             for pos in poscar['restruct_lattice']:
                 print('  ', file=f, end='')
-                print(*pos[0], sep=', ', file=f, end='')
+                print(*pos[0], sep='  ', file=f, end='')
                 print('\n', file=f, end='')
 
     def read_poscar(self, filename):
@@ -90,7 +99,7 @@ class AtomRestruct:
             matrix.append(row)
         return matrix
 
-    def lattice_positons(self, poscar, axis=-1):
+    def lattice_positons(self, poscar, infer, axis=-1):
         positions = poscar['lattice_vectors']
         symbols = poscar['atom_order']
         lattice = [(atom_pos, atom_sym)
@@ -98,7 +107,7 @@ class AtomRestruct:
                                                  symbols)]
         lattice.sort(key=lambda pair: pair[0][axis])
         self.print_lattice(lattice)
-        pos = int(input("Insert number: "))
+        pos = int(input("Insert position: "))
         sym = input("Atom symbol: ")
         x = float(input("Enter x coordinate: "))
         y = float(input("Enter y coordinate: "))
@@ -107,7 +116,7 @@ class AtomRestruct:
         elif sym not in symbols:
             raise ValueError("Symbol not found in symbols")
         else:
-            print(f"Insering atom {sym} in place {pos}")
+            print(f"Inserting atom {sym} in place {pos}")
         if pos == len(positions):
             prev_bond, next_bond = lattice[pos-1][0], None
             prev_sym, next_sym = lattice[pos-1][1], None
@@ -121,8 +130,11 @@ class AtomRestruct:
             # new position is at pos
             prev_b = self.find_bond_length([prev_sym, sym],lattice)
             next_b = self.find_bond_length([sym, next_sym],lattice)
-            print(prev_b, next_b)
-            new_pos = [x, y, prev_bond[2]-prev_b[2]]
+            if infer:
+                bond_shift = self.preserve_structure(pos, [prev_sym, sym], lattice)
+                new_pos = [*bond_shift[:2], prev_bond[2]-prev_b[2]]
+            else:
+                new_pos = [x, y, prev_bond[2]-prev_b[2]]
             if pos == 0:
                 new_pos = [x, y, np.abs(prev_b[2])]
             # shift all remaining by a vector in z
@@ -159,7 +171,7 @@ class AtomRestruct:
             c += 1
 
     def print_lattice_flat(self, lattice,  index_highlight=None):
-        for i, atom in enamerate(lattice):
+        for i, atom in enumerate(lattice):
             if i == index_highlight:
                 print(f"{Fore.GREEN}{i}. {atom[i]} in {atom[0]}{Style.RESET_ALL}")
             else:
@@ -173,16 +185,42 @@ class AtomRestruct:
                     try:
                         if atom_sym_pairs[i+1][1] == bond_type[j^1]:
                             # found the bond
-                            return pair[0]-atom_sym_pairs[i+1][0]
+                            return atom_sym_pairs[i-1][0]
                     except IndexError:
                         # insert boundary condition check here
-                        pass
+                        print(f"Bond occurence {bond_type[0]}-{bond_type[1]} not found")
 
+    def preserve_structure(self, pos, bond_type, atom_sym_pairs):
+        # find previous occurence of the bond to preserve structure
+        print(f"Looking for {bond_type[0]}-{bond_type[1]}")
+        previous_bond_pos = None
+        for i in np.arange(pos, 0, -1):
+            if (previous_bond_pos is None) and \
+                    (atom_sym_pairs[i][1] == bond_type[0]):
+                previous_bond_pos = atom_sym_pairs[i][0]
+            try:
+                if atom_sym_pairs[i][1] == bond_type[1] and \
+                    atom_sym_pairs[i-1][1] == bond_type[0]:
+                        # found last bond pair
+                        if abs(previous_bond_pos[1]-atom_sym_pairs[i][0][1]) >\
+                            abs(previous_bond_pos[1]-atom_sym_pairs[i-1][0][1]):
+                            return atom_sym_pairs[i][0]
+                        else:
+                            return atom_sym_pairs[i-1][0]
+            except IndexError:
+                print("Bond - preserving  occurence not found")
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Atom resturcturer')
+    parser.add_argument('source', type=str, help='source POSCAR file')
+    parser.add_argument('out', type=str, help='output POSCAR file')
+    parser.add_argument('--infer', help='infer x, y coords',
+                        action='store_true')
+    args = parser.parse_args()
+    print(args)
     ar = AtomRestruct()
-    poscar = ar.read_poscar(sys.argv[1])
-    new_poscar = ar.lattice_positons(poscar)
-    print(f"Saving POSCAR file in {sys.argv[2]}")
-    ar.save_poscar(sys.argv[2], new_poscar)
+    poscar = ar.read_poscar(args.source)
+    new_poscar = ar.lattice_positons(poscar, args.infer)
+    print(f"Saving POSCAR file in {args.out}")
+    ar.save_poscar(args.out, new_poscar)
 
