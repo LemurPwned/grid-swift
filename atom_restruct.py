@@ -8,6 +8,8 @@ class AtomRestruct:
     def __init__(self):
         self.regex = '\W+'
         self.lattice_subregex = '(-?[0-9]+\.?[0-9]+e?-?[0-9]*)'
+        self.print_lattice = self.print_lattice_space
+
     def save_poscar(self, filename, poscar):
         # group lattice
         poscar['restruct_lattice'].sort(key=lambda pair: pair[1])
@@ -47,10 +49,8 @@ class AtomRestruct:
             poscar_data['conf'] = self.extract_conf_num(
                [next(f) for i in range(2)])
             x = f.readline()
-            print(x)
             if x.strip() != 'Direct':
                 x = f.readline()
-                print(x)
             poscar_data['coord_type'] = re.sub(self.regex, '', x)
             atom_struct = []
             print(poscar_data)
@@ -163,7 +163,7 @@ class AtomRestruct:
         poscar['restruct_lattice'] = lattice
         return poscar
 
-    def print_lattice(self, lattice, axis=1, index_highlight=None):
+    def print_lattice_space(self, lattice, axis=1, index_highlight=None):
         # sort the lattice in the plane
         # find unique lattice in [1] axis
         positions = np.array(list(map(lambda x: x[0], lattice)))
@@ -179,7 +179,7 @@ class AtomRestruct:
                 print(f"{c}.{spacing[pos[axis]]}{atm}")
             c += 1
 
-    def print_lattice_flat(self, lattice,  index_highlight=None):
+    def print_lattice_flat(self, lattice,  index_highlight=-1):
         for i, atom in enumerate(lattice):
             if i == index_highlight:
                 print(f"\033[32m{i}. {atom[1]} in {atom[0]}\033[0m")
@@ -219,18 +219,40 @@ class AtomRestruct:
             except IndexError:
                 print("Bond - preserving  occurence not found")
 
+    def translate_vectors(self, poscar, shift):
+        x = float(input("Translate x: "))
+        y = float(input("Translate y: "))
+        z = float(input("Translate z: "))
+        lattice = poscar['restruct_lattice']
+        lattice[shift[0]:shift[1]] = map(lambda v:
+                                         ([v[0][0]+x,
+                                           v[0][1]+y,
+                                           v[0][2]+z], v[1]),
+                                         lattice[shift[0]:shift[1]])
+        self.print_lattice(lattice)
+        poscar['restruct_lattice'] = lattice
+        return poscar
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Atom resturcturer')
     parser.add_argument('source', type=str, help='source POSCAR file')
     parser.add_argument('out', type=str, help='output POSCAR file')
     parser.add_argument('--infer', help='infer x, y coords',
                         action='store_true')
-    #parser.add_argument('-s', '--shift')
+    parser.add_argument('-s', '--shift', help='shift vector in range [start, stop]',
+                        nargs=2, type=int)
+    parser.add_argument('--flat', help='flat display with coordinates',
+                        action='store_true')
     args = parser.parse_args()
     print(args)
     ar = AtomRestruct()
+    if args.flat:
+        ar.print_lattice = ar.print_lattice_flat
     poscar = ar.read_poscar(args.source)
     new_poscar = ar.lattice_positions(poscar, args.infer)
+    if args.shift is not None:
+        new_poscar = ar.translate_vectors(new_poscar, args.shift)
     print(f"Saving POSCAR file in {args.out}")
     ar.save_poscar(args.out, new_poscar)
 
