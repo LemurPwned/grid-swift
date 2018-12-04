@@ -13,7 +13,7 @@ class AtomRestruct:
         with open(filename, 'w') as f:
             f.write(poscar['name'] + '\n')
             f.write('  ' + str(poscar['scaler']) + '\n')
-            for row in poscar['lattice']:
+            for row in poscar['basis']:
                 print('    ', file=f, end='')
                 print(*row, sep=', ', file=f, end='')
                 print('\n', file=f, end='')
@@ -35,7 +35,7 @@ class AtomRestruct:
         with open(filename, 'r') as f:
             poscar_data['name'] = re.sub(self.regex, '',f.readline())
             poscar_data['scaler'] = float(f.readline())
-            poscar_data['lattice'] = self.parse_translation_matrix(
+            poscar_data['basis'] = self.parse_translation_matrix(
                [next(f) for i in range(3)]) # basis vectors
             poscar_data['conf'] = self.extract_conf_num(
                [next(f) for i in range(2)])
@@ -50,7 +50,7 @@ class AtomRestruct:
                                              poscar_data['conf'])[1]
             for i in range(poscar_data['atom_num']):
                 coord = self.parse_coords(x, poscar_data['coord_type'],
-                                          poscar_data['lattice'],
+                                          poscar_data['basis'],
                                           poscar_data['scaler'])
                 atom_struct.append(coord)
                 x = f.readline()
@@ -90,9 +90,12 @@ class AtomRestruct:
             matrix.append(row)
         return matrix
 
-    def lattice_positons(self, positions, symbols, axis=-1):
+    def lattice_positons(self, poscar, axis=-1):
+        positions = poscar['lattice_vectors']
+        symbols = poscar['atom_order']
         lattice = [(atom_pos, atom_sym)
-                   for atom_pos, atom_sym in zip(positions, symbols)]
+                   for atom_pos, atom_sym in zip(positions,
+                                                 symbols)]
         lattice.sort(key=lambda pair: pair[0][axis])
         self.print_lattice(lattice)
         pos = int(input("Insert number: "))
@@ -105,11 +108,8 @@ class AtomRestruct:
             raise ValueError("Symbol not found in symbols")
         else:
             print("Insering atom {} in place {}".format(sym, pos))
-        if pos == 0:
-            prev_bond = None
-            next_bond = positions[pos]
-        elif pos == len(positions):
-            prev_bond, next_bond = positions[pos-1], None
+        if pos == len(positions):
+            prev_bond, next_bond = lattice[pos-1][0], None
             prev_sym, next_sym = lattice[pos-1][1], None
             # insert at the end, so no shifting
             prev_b = self.find_bond_length([prev_sym, sym],lattice)
@@ -123,6 +123,8 @@ class AtomRestruct:
             next_b = self.find_bond_length([sym, next_sym],lattice)
             print(prev_b, next_b)
             new_pos = [x, y, prev_bond[2]-prev_b[2]]
+            if pos == 0:
+                new_pos = [x, y, np.abs(prev_b[2])]
             # shift all remaining by a vector in z
             # z pos of next atom = bond_length + z pos of inserted
             # thus z shift is old_pos - new _z pos
@@ -133,7 +135,12 @@ class AtomRestruct:
             lattice[pos+1:] = map(lambda x: ([*x[0][:2],x[0][2]+zshift], x[1]),
                                 lattice[pos+1:])
         self.print_lattice(lattice, pos)
-        return lattice
+        # update maximum zshift
+        poscar['basis'][2][2] = poscar['basis'][2][2] + zshift
+        poscar['conf'] = map(lambda x: (x[0], x[1]+1) if x[0]==sym else x,
+                                  poscar['conf'])
+        poscar['restruct_lattice'] = lattice
+        return poscar
 
     def print_lattice(self, lattice,  index_highlight=None):
         for i, atom in enumerate(lattice):
@@ -159,8 +166,6 @@ if __name__ == "__main__":
     print(sys.argv)
     ar = AtomRestruct()
     poscar = ar.read_poscar(sys.argv[1])
-    new_lattice = ar.lattice_positons(poscar['lattice_vectors'],
-                                   poscar['atom_order'])
-    poscar['restruct_lattice'] = new_lattice
-    ar.save_poscar(sys.argv[2], poscar)
+    new_poscar = ar.lattice_positons(poscar)
+    ar.save_poscar(sys.argv[2], new_poscar)
 
