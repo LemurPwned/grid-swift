@@ -163,7 +163,13 @@ class AtomRestruct:
         poscar['restruct_lattice'] = lattice
         return poscar
 
-    def print_lattice_space(self, lattice, axis=1, index_highlight=None):
+    def print_lattice_space(self, lattice, axis=1, index_highlight=-1):
+        if type(index_highlight) == list:
+            index_highlight = [i for i in
+                               range(index_highlight[0],
+                                     index_highlight[1])]
+        else:
+            index_highlight = [index_highlight]
         # sort the lattice in the plane
         # find unique lattice in [1] axis
         positions = np.array(list(map(lambda x: x[0], lattice)))
@@ -173,15 +179,22 @@ class AtomRestruct:
                    for i in range(len(unique_plane))}
         c = 0
         for pos, atm in lattice:
-            if c == index_highlight:
+            if c in index_highlight:
                 print(f"\033[32m{c}.{spacing[pos[axis]]}{atm}\033[0m")
             else:
                 print(f"{c}.{spacing[pos[axis]]}{atm}")
             c += 1
 
     def print_lattice_flat(self, lattice,  index_highlight=-1):
+        if type(index_highlight) == list:
+            index_highlight = [i for i in
+                               range(index_highlight[0],
+                                     index_highlight[1])]
+        else:
+            index_highlight = [index_highlight]
+
         for i, atom in enumerate(lattice):
-            if i == index_highlight:
+            if i in index_highlight:
                 print(f"\033[32m{i}. {atom[1]} in {atom[0]}\033[0m")
             else:
                 print(f"{i}. {atom[1]} in {atom[0]}")
@@ -229,7 +242,7 @@ class AtomRestruct:
                                            v[0][1]+y,
                                            v[0][2]+z], v[1]),
                                          lattice[shift[0]:shift[1]])
-        self.print_lattice(lattice)
+        self.print_lattice(lattice, index_highlight=shift)
         poscar['restruct_lattice'] = lattice
         return poscar
 
