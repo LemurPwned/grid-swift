@@ -46,15 +46,20 @@ class AtomRestruct:
                [next(f) for i in range(3)]) # basis vectors
             poscar_data['conf'] = self.extract_conf_num(
                [next(f) for i in range(2)])
-            poscar_data['coord_type'] = re.sub(self.regex, '', f.readline())
             x = f.readline()
+            print(x)
+            if x.strip() != 'Direct':
+                x = f.readline()
+                print(x)
+            poscar_data['coord_type'] = re.sub(self.regex, '', x)
             atom_struct = []
-            print(poscar_data['conf'])
+            print(poscar_data)
             poscar_data['atom_order'] = [pair[0]
                                          for pair in poscar_data['conf']
                                          for i in range(pair[1])]
             poscar_data['atom_num'] = reduce(lambda x, y: ('num', x[1]+ y[1]),
                                              poscar_data['conf'])[1]
+            x = f.readline()
             for i in range(poscar_data['atom_num']):
                 coord = self.parse_coords(x, poscar_data['coord_type'],
                                           poscar_data['basis'],
@@ -75,9 +80,14 @@ class AtomRestruct:
         try:
             fin_coord = np.array([float(i)
                                   for i in match])*lattice_scaler
+            if (fin_coord is None) or (len(fin_coord) == 0):
+                raise ValueError
         except ValueError:
             raise ValueError(f"Invalid lattice vector {coords}")
-        return np.dot(lattice_matrix, fin_coord)
+        try:
+           return np.dot(lattice_matrix, fin_coord)
+        except ValueError:
+            print(f"Invalid dot {fin_coord}")
 
     def extract_conf_num(self, header):
         return [(atom, int(num)) for atom, num in zip(
@@ -215,6 +225,7 @@ if __name__ == "__main__":
     parser.add_argument('out', type=str, help='output POSCAR file')
     parser.add_argument('--infer', help='infer x, y coords',
                         action='store_true')
+    #parser.add_argument('-s', '--shift')
     args = parser.parse_args()
     print(args)
     ar = AtomRestruct()
