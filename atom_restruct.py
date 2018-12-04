@@ -3,7 +3,6 @@ import sys
 import argparse
 import numpy as np
 from functools import reduce
-from colorama import Fore, Style
 
 class AtomRestruct:
     def __init__(self):
@@ -165,7 +164,7 @@ class AtomRestruct:
         c = 0
         for pos, atm in lattice:
             if c == index_highlight:
-                print(f"{Fore.GREEN}{c}.{spacing[pos[axis]]}{atm}{Style.RESET_ALL}")
+                print(f"\033[32m{c}.{spacing[pos[axis]]}{atm}\033[0m")
             else:
                 print(f"{c}.{spacing[pos[axis]]}{atm}")
             c += 1
@@ -173,7 +172,7 @@ class AtomRestruct:
     def print_lattice_flat(self, lattice,  index_highlight=None):
         for i, atom in enumerate(lattice):
             if i == index_highlight:
-                print(f"{Fore.GREEN}{i}. {atom[1]} in {atom[0]}{Style.RESET_ALL}")
+                print(f"\033[32m{i}. {atom[1]} in {atom[0]}\033[0m")
             else:
                 print(f"{i}. {atom[1]} in {atom[0]}")
 
