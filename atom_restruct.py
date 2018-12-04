@@ -152,6 +152,7 @@ class AtomRestruct:
                         pass
 
 if __name__ == "__main__":
+    print(sys.argv)
     ar = AtomRestruct()
     poscar = ar.read_poscar("POSCAR")
     new_lattice = ar.lattice_positons(poscar['lattice_vectors'],
