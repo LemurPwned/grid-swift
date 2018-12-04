@@ -8,8 +8,7 @@ from colorama import Fore, Style
 class AtomRestruct:
     def __init__(self):
         self.regex = '\W+'
-        self.lattice_subregex = r'(-?[0-9]+\.?[0-9]+e?-?[0-9]+)(?:\s+)(-?[0-9]+\.?[0-9]+e?-?[0-9]+)(?:\s+)(-?[0-9]+\.?[0-9]+e?-?[0-9]+)'
-
+        self.lattice_subregex = '(-?[0-9]+\.?[0-9]+e?-?[0-9]*)'
     def save_poscar(self, filename, poscar):
         # group lattice
         poscar['restruct_lattice'].sort(key=lambda pair: pair[1])
@@ -73,10 +72,11 @@ class AtomRestruct:
         return poscar_data
 
     def parse_coords(self, coords, coords_type, lattice_matrix, lattice_scaler):
-        match = re.search(self.lattice_subregex, coords)
+        match = re.findall(self.lattice_subregex, coords)
+        print(match)
         try:
-            fin_coord = np.array([float(match.group(i))
-                                  for i in range(1,4)])*lattice_scaler
+            fin_coord = np.array([float(i)
+                                  for i in match])*lattice_scaler
         except ValueError:
             raise ValueError(f"Invalid lattice vector {coords}")
         return np.dot(lattice_matrix, fin_coord)
