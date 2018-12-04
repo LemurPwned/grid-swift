@@ -73,7 +73,6 @@ class AtomRestruct:
 
     def parse_coords(self, coords, coords_type, lattice_matrix, lattice_scaler):
         match = re.findall(self.lattice_subregex, coords)
-        print(match)
         try:
             fin_coord = np.array([float(i)
                                   for i in match])*lattice_scaler
@@ -99,7 +98,7 @@ class AtomRestruct:
             matrix.append(row)
         return matrix
 
-    def lattice_positons(self, poscar, infer, axis=-1):
+    def lattice_positions(self, poscar, infer, axis=-1):
         positions = poscar['lattice_vectors']
         symbols = poscar['atom_order']
         lattice = [(atom_pos, atom_sym)
@@ -131,7 +130,8 @@ class AtomRestruct:
             prev_b = self.find_bond_length([prev_sym, sym],lattice)
             next_b = self.find_bond_length([sym, next_sym],lattice)
             if infer:
-                bond_shift = self.preserve_structure(pos, [prev_sym, sym], lattice)
+                bond_shift = self.preserve_structure(pos, [prev_sym, sym],
+                                                     lattice)
                 new_pos = [*bond_shift[:2], prev_bond[2]-prev_b[2]]
             else:
                 new_pos = [x, y, prev_bond[2]-prev_b[2]]
@@ -173,7 +173,7 @@ class AtomRestruct:
     def print_lattice_flat(self, lattice,  index_highlight=None):
         for i, atom in enumerate(lattice):
             if i == index_highlight:
-                print(f"{Fore.GREEN}{i}. {atom[i]} in {atom[0]}{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}{i}. {atom[1]} in {atom[0]}{Style.RESET_ALL}")
             else:
                 print(f"{i}. {atom[1]} in {atom[0]}")
 
@@ -185,7 +185,7 @@ class AtomRestruct:
                     try:
                         if atom_sym_pairs[i+1][1] == bond_type[j^1]:
                             # found the bond
-                            return atom_sym_pairs[i-1][0]
+                            return pair[0]-atom_sym_pairs[i+1][0]
                     except IndexError:
                         # insert boundary condition check here
                         print(f"Bond occurence {bond_type[0]}-{bond_type[1]} not found")
@@ -220,7 +220,7 @@ if __name__ == "__main__":
     print(args)
     ar = AtomRestruct()
     poscar = ar.read_poscar(args.source)
-    new_poscar = ar.lattice_positons(poscar, args.infer)
+    new_poscar = ar.lattice_positions(poscar, args.infer)
     print(f"Saving POSCAR file in {args.out}")
     ar.save_poscar(args.out, new_poscar)
 
