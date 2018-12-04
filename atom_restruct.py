@@ -166,7 +166,7 @@ class AtomRestruct:
                                 lattice[pos+1:])
         self.print_lattice(lattice, index_highlight=pos)
         # update maximum zshift
-        poscar['basis'][2][2] = poscar['basis'][2][2] + zshift
+        poscar['basis'][2][2] = poscar['basis'][2][2] + zshift/poscar['scaler']
         poscar['conf'] = map(lambda x: (x[0], x[1]+1) if x[0]==sym else x,
                                   poscar['conf'])
         poscar['restruct_lattice'] = lattice
