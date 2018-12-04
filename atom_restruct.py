@@ -12,7 +12,7 @@ class AtomRestruct:
     def save_poscar(self, filename, poscar):
         with open(filename, 'w') as f:
             f.write(poscar['name'] + '\n')
-            f.write('  ' + str(poscar['scaler']) + '\n')
+            f.write(f"      {str(poscar['scaler'])}\n")
             for row in poscar['basis']:
                 print('    ', file=f, end='')
                 print(*row, sep=', ', file=f, end='')
@@ -69,7 +69,7 @@ class AtomRestruct:
             fin_coord = np.array([float(match.group(i))
                                   for i in range(1,4)])*lattice_scaler
         except ValueError:
-            raise ValueError("Invalid lattice vector {}".format(coords))
+            raise ValueError(f"Invalid lattice vector {coords}")
         return np.dot(lattice_matrix, fin_coord)
 
     def extract_conf_num(self, header):
@@ -107,7 +107,7 @@ class AtomRestruct:
         elif sym not in symbols:
             raise ValueError("Symbol not found in symbols")
         else:
-            print("Insering atom {} in place {}".format(sym, pos))
+            print(f"Insering atom {sym} in place {pos}")
         if pos == len(positions):
             prev_bond, next_bond = lattice[pos-1][0], None
             prev_sym, next_sym = lattice[pos-1][1], None
@@ -134,7 +134,7 @@ class AtomRestruct:
             lattice.insert(pos, (new_pos, sym))
             lattice[pos+1:] = map(lambda x: ([*x[0][:2],x[0][2]+zshift], x[1]),
                                 lattice[pos+1:])
-        self.print_lattice(lattice, pos)
+        self.print_lattice(lattice, index_highlight=pos)
         # update maximum zshift
         poscar['basis'][2][2] = poscar['basis'][2][2] + zshift
         poscar['conf'] = map(lambda x: (x[0], x[1]+1) if x[0]==sym else x,
@@ -142,15 +142,31 @@ class AtomRestruct:
         poscar['restruct_lattice'] = lattice
         return poscar
 
-    def print_lattice(self, lattice,  index_highlight=None):
-        for i, atom in enumerate(lattice):
-            if i == index_highlight:
-                print(Fore.GREEN + "{}. {} in {}".format(i, atom[1], atom[0]) + Style.RESET_ALL)
+    def print_lattice(self, lattice, axis=1, index_highlight=None):
+        # sort the lattice in the plane
+        # find unique lattice in [1] axis
+        positions = np.array(list(map(lambda x: x[0], lattice)))
+        unique_plane = np.unique(positions[:,axis])
+        unique_plane.sort()
+        spacing = {unique_plane[i]: ' '*i
+                   for i in range(len(unique_plane))}
+        c = 0
+        for pos, atm in lattice:
+            if c == index_highlight:
+                print(f"{Fore.GREEN}{c}.{spacing[pos[axis]]}{atm}{Style.RESET_ALL}")
             else:
-                print("{}. {} in {}".format(i, atom[1], atom[0]))
+                print(f"{c}.{spacing[pos[axis]]}{atm}")
+            c += 1
+
+    def print_lattice_flat(self, lattice,  index_highlight=None):
+        for i, atom in enamerate(lattice):
+            if i == index_highlight:
+                print(f"{Fore.GREEN}{i}. {atom[i]} in {atom[0]}{Style.RESET_ALL}")
+            else:
+                print(f"{i}. {atom[1]} in {atom[0]}")
 
     def find_bond_length(self, bond_type, atom_sym_pairs):
-        print("Looking for {}-{}".format(bond_type[0], bond_type[1]))
+        print(f"Looking for {bond_type[0]}-{bond_type[1]}")
         for i, pair in enumerate(atom_sym_pairs):
             for j in range(2):
                 if pair[1] == bond_type[j]:
@@ -162,10 +178,11 @@ class AtomRestruct:
                         # insert boundary condition check here
                         pass
 
+
 if __name__ == "__main__":
-    print(sys.argv)
     ar = AtomRestruct()
     poscar = ar.read_poscar(sys.argv[1])
     new_poscar = ar.lattice_positons(poscar)
+    print(f"Saving POSCAR file in {sys.argv[2]}")
     ar.save_poscar(sys.argv[2], new_poscar)
 
