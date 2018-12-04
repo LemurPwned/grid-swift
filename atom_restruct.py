@@ -75,17 +75,21 @@ class AtomRestruct:
         poscar_data['lattice_vectors'] = atom_struct
         return poscar_data
 
-    def parse_coords(self, coords, coords_type, lattice_matrix, lattice_scaler):
+    def parse_coords(self, coords, coords_type, lattice_matrix,
+                     lattice_scaler):
         match = re.findall(self.lattice_subregex, coords)
         try:
             fin_coord = np.array([float(i)
-                                  for i in match])*lattice_scaler
+                                  for i in match])
             if (fin_coord is None) or (len(fin_coord) == 0):
                 raise ValueError
         except ValueError:
             raise ValueError(f"Invalid lattice vector {coords}")
         try:
-           return np.dot(lattice_matrix, fin_coord)
+            if coords_type == 'Direct':
+               return np.dot(lattice_matrix, fin_coord*lattice_scaler)
+            else:
+                return fin_coord
         except ValueError:
             print(f"Invalid dot {fin_coord}")
 
@@ -175,7 +179,7 @@ class AtomRestruct:
         positions = np.array(list(map(lambda x: x[0], lattice)))
         unique_plane = np.unique(positions[:,axis])
         unique_plane.sort()
-        spacing = {unique_plane[i]: ' '*i
+        spacing = {unique_plane[i]: '  '*i
                    for i in range(len(unique_plane))}
         c = 0
         for pos, atm in lattice:
