@@ -97,6 +97,8 @@ class AtomRestruct:
         self.print_lattice(lattice)
         pos = int(input("Insert number: "))
         sym = input("Atom symbol: ")
+        x = float(input("Enter x coordinate: "))
+        y = float(input("Enter y coordinate: "))
         if pos > len(positions) or pos < 0:
             raise ValueError("Position out of range")
         elif sym not in symbols:
@@ -105,9 +107,14 @@ class AtomRestruct:
             print("Insering atom {} in place {}".format(sym, pos))
         if pos == 0:
             prev_bond = None
-            next_bond = positions[pos+1]
+            next_bond = positions[pos]
         elif pos == len(positions):
             prev_bond, next_bond = positions[pos-1], None
+            prev_sym, next_sym = lattice[pos-1][1], None
+            # insert at the end, so no shifting
+            prev_b = self.find_bond_length([prev_sym, sym],lattice)
+            new_pos = [x, y, prev_bond[2]-prev_b[2]]
+            lattice.insert(pos, (new_pos, sym))
         else:
             prev_bond, next_bond = lattice[pos-1][0], lattice[pos][0]
             prev_sym, next_sym = lattice[pos-1][1], lattice[pos][1]
@@ -115,8 +122,6 @@ class AtomRestruct:
             prev_b = self.find_bond_length([prev_sym, sym],lattice)
             next_b = self.find_bond_length([sym, next_sym],lattice)
             print(prev_b, next_b)
-            x = float(input("Enter x coordinate: "))
-            y = float(input("Enter y coordinate: "))
             new_pos = [x, y, prev_bond[2]-prev_b[2]]
             # shift all remaining by a vector in z
             # z pos of next atom = bond_length + z pos of inserted
@@ -127,8 +132,8 @@ class AtomRestruct:
             lattice.insert(pos, (new_pos, sym))
             lattice[pos+1:] = map(lambda x: ([*x[0][:2],x[0][2]+zshift], x[1]),
                                 lattice[pos+1:])
-            self.print_lattice(lattice, pos)
-            return lattice
+        self.print_lattice(lattice, pos)
+        return lattice
 
     def print_lattice(self, lattice,  index_highlight=None):
         for i, atom in enumerate(lattice):
@@ -143,7 +148,6 @@ class AtomRestruct:
             for j in range(2):
                 if pair[1] == bond_type[j]:
                     try:
-                        print(pair[1], atom_sym_pairs[i+1][1])
                         if atom_sym_pairs[i+1][1] == bond_type[j^1]:
                             # found the bond
                             return pair[0]-atom_sym_pairs[i+1][0]
@@ -154,9 +158,9 @@ class AtomRestruct:
 if __name__ == "__main__":
     print(sys.argv)
     ar = AtomRestruct()
-    poscar = ar.read_poscar("POSCAR")
+    poscar = ar.read_poscar(sys.argv[1])
     new_lattice = ar.lattice_positons(poscar['lattice_vectors'],
                                    poscar['atom_order'])
     poscar['restruct_lattice'] = new_lattice
-    ar.save_poscar('test', poscar)
+    ar.save_poscar(sys.argv[2], poscar)
 
