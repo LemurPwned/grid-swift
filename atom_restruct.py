@@ -49,7 +49,7 @@ class AtomRestruct:
             poscar_data['conf'] = self.extract_conf_num(
                [next(f) for i in range(2)])
             x = f.readline()
-            if x.strip() != 'Direct':
+            if (x.strip() != 'Direct') and (x.strip()!='Cartesian'):
                 x = f.readline()
             poscar_data['coord_type'] = re.sub(self.regex, '', x)
             atom_struct = []
@@ -253,7 +253,7 @@ if __name__ == "__main__":
     parser.add_argument('out', type=str, help='output POSCAR file')
     parser.add_argument('--infer', help='infer x, y coords',
                         action='store_true')
-    parser.add_argument('-s', '--shift', help='shift vector in range [start, stop]',
+    parser.add_argument('-s', '--shift', help='shift vector in range [start, stop)',
                         nargs=2, type=int)
     parser.add_argument('--flat', help='flat display with coordinates',
                         action='store_true')
