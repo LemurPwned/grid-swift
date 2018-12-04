@@ -21,10 +21,14 @@ class AtomRestruct:
                 conf[sym] = 1
         with open(filename, 'w') as f:
             f.write(poscar['name'] + '\n')
+            poscar['scaler'] = 1 \
+                if poscar['coord_type'] == 'Direct' else poscar['scaler']
             f.write(f"      {str(poscar['scaler'])}\n")
             for row in poscar['basis']:
+                to_write = row*poscar['scaler'] \
+                            if poscar['coord_type'] == 'Direct' else row
                 print('    ', file=f, end='')
-                print(*row, sep='  ', file=f, end='')
+                print(*to_write, sep='  ', file=f, end='')
                 print('\n', file=f, end='')
             a_str = "  "
             b_str = "    "
