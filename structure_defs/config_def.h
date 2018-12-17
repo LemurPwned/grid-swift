@@ -3,6 +3,7 @@
 
 #define MAX_CONF_TEXT_LEN 500
 #define MAX_PARAMETER_NUMBER 5
+#define MAX_PLAIN_LIST_LENGTH 40
 #define DELIMITER "/"
 
 typedef struct user_info
@@ -16,6 +17,8 @@ typedef struct parameter_sweep
     double start;
     double stop;
     double step;
+    int plain;
+    double plain_list[MAX_PLAIN_LIST_LENGTH];
 } PM_LIST;
 
 typedef struct oommf_config
