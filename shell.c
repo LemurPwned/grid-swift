@@ -168,8 +168,9 @@ int queue_script_writer(OOMMF_CONFIG *conf_spec, char filepath[], char parameter
     fprintf(output, "#SBATCH --time=%s\n", conf_spec->walltime);
     fprintf(output, "#SBATCH -A %s\n", conf_spec->grant);
     fprintf(output, "#SBATCH -p plgrid\n");
-    fprintf(output, "#SBATCH --output=\"%s_output.txt\"\n", filepath);
-    fprintf(output, "#SBATCH --error=\"%s_error.txt\"\n", filepath);
+    fprintf(output, "#SBATCH --output=\"%s_output.out\"\n", filepath);
+    fprintf(output, "#SBATCH --error=\"%s_error.err\"\n", filepath);
+    fprintf(output, "#SBATCH --comment=\"tag:%s\"\n", conf_spec->name);
     fprintf(output, "date\n");
     for (int i = 0; i < conf_spec->modules_number; i++)
     {
