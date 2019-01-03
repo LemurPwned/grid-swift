@@ -32,7 +32,7 @@ int fill_numerical_parameter_arrays(double **pm_numerical_list,
                 pm_numerical_list[i][j] = pm[i].plain_list[j];
                 pm_string_list[i][j] = malloc(MAX_CONF_TEXT_LEN * sizeof(char));
                 sprintf(pm_string_list[i][j], "%s %g", pm[i].param_name, pm_numerical_list[i][j]);
-                printf("PARAM PLAIN: %s\n", pm_string_list[i][j]);
+                //printf("PARAM PLAIN: %s\n", pm_string_list[i][j]);
             }
             pm_step_nums[i] = pm[i].plain;
             total_combinations = (total_combinations == 0) ? pm[i].plain : total_combinations * pm[i].plain;
@@ -56,7 +56,7 @@ int fill_numerical_parameter_arrays(double **pm_numerical_list,
                 // printf("%g\n", pm_numerical_list[i][j]);
                 pm_string_list[i][j] = malloc(MAX_CONF_TEXT_LEN * sizeof(char));
                 sprintf(pm_string_list[i][j], "%s %g", pm[i].param_name, pm_numerical_list[i][j]);
-                printf("PARAM: %s\n", pm_string_list[i][j]);
+                //printf("PARAM: %s\n", pm_string_list[i][j]);
             }
             pm_step_nums[i] = number_of_steps;
             // avoid consequent multiplicatiion by zero
@@ -155,7 +155,7 @@ int oommf_task_executor(char *config_file, USER_DATA *ud)
 
         bzero(command, sizeof(command));
         sprintf(command, "sbatch %s", filepath);
-        // system(command);
+        system(command);
 
         // log_to_file(__LOG__FILE__, 'I', command);
         // clear all paths
