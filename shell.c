@@ -25,29 +25,43 @@ int fill_numerical_parameter_arrays(double **pm_numerical_list,
     int total_combinations = 0;
     for (int i = 0; i < parameter_number; i++)
     {
-        printf("PARAMETER SWEEP %s\n", pm[i].param_name);
-        printf("start: %f, stop: %f\n", pm[i].start, pm[i].stop,
-               pm[i].start, pm[i].stop);
-        double diff = pm[i].stop - pm[i].start;
-        int number_of_steps = (int)(diff / pm[i].step) + 1;
-        double mod = diff - (double)(number_of_steps)*pm[i].step;
-        double list_len = mod == 0.0
-                              ? diff + 1
-                              : diff / pm[i].step;
-        printf("Deduced list length %d\n", number_of_steps);
-        pm_numerical_list[i] = malloc(number_of_steps * sizeof(double));
-        pm_string_list[i] = malloc(number_of_steps * sizeof(char *));
-        for (int j = 0; j < number_of_steps; j++)
-        {
-            pm_numerical_list[i][j] = pm[i].start + (float)j * pm[i].step;
-            // printf("%g\n", pm_numerical_list[i][j]);
-            pm_string_list[i][j] = malloc(MAX_CONF_TEXT_LEN * sizeof(char));
-            sprintf(pm_string_list[i][j], "%s %g", pm[i].param_name, pm_numerical_list[i][j]);
-            printf("PARAM: %s\n", pm_string_list[i][j]);
+        if (pm[i].plain){
+            pm_numerical_list[i] = malloc(pm[i].plain * sizeof(double));
+            pm_string_list[i] = malloc(pm[i].plain * sizeof(char *));
+            for (int j = 0; j < pm[i].plain; j++){
+                pm_numerical_list[i][j] = pm[i].plain_list[j];
+                pm_string_list[i][j] = malloc(MAX_CONF_TEXT_LEN * sizeof(char));
+                sprintf(pm_string_list[i][j], "%s %g", pm[i].param_name, pm_numerical_list[i][j]);
+                //printf("PARAM PLAIN: %s\n", pm_string_list[i][j]);
+            }
+            pm_step_nums[i] = pm[i].plain;
+            total_combinations = (total_combinations == 0) ? pm[i].plain : total_combinations * pm[i].plain;
         }
-        pm_step_nums[i] = number_of_steps;
-        // avoid consequent multiplicatiion by zero
-        total_combinations = (total_combinations == 0) ? number_of_steps : total_combinations * number_of_steps;
+        else {
+            printf("PARAMETER SWEEP %s\n", pm[i].param_name);
+            printf("start: %f, stop: %f\n", pm[i].start, pm[i].stop,
+                pm[i].start, pm[i].stop);
+            double diff = pm[i].stop - pm[i].start;
+            int number_of_steps = (int)(diff / pm[i].step) + 1;
+            double mod = diff - (double)(number_of_steps)*pm[i].step;
+            double list_len = mod == 0.0
+                                ? diff + 1
+                                : diff / pm[i].step;
+            printf("Deduced list length %d\n", number_of_steps);
+            pm_numerical_list[i] = malloc(number_of_steps * sizeof(double));
+            pm_string_list[i] = malloc(number_of_steps * sizeof(char *));
+            for (int j = 0; j < number_of_steps; j++)
+            {
+                pm_numerical_list[i][j] = pm[i].start + (float)j * pm[i].step;
+                // printf("%g\n", pm_numerical_list[i][j]);
+                pm_string_list[i][j] = malloc(MAX_CONF_TEXT_LEN * sizeof(char));
+                sprintf(pm_string_list[i][j], "%s %g", pm[i].param_name, pm_numerical_list[i][j]);
+                //printf("PARAM: %s\n", pm_string_list[i][j]);
+            }
+            pm_step_nums[i] = number_of_steps;
+            // avoid consequent multiplicatiion by zero
+            total_combinations = (total_combinations == 0) ? number_of_steps : total_combinations * number_of_steps;
+        }
     }
     return total_combinations;
 }
@@ -168,8 +182,9 @@ int queue_script_writer(OOMMF_CONFIG *conf_spec, char filepath[], char parameter
     fprintf(output, "#SBATCH --time=%s\n", conf_spec->walltime);
     fprintf(output, "#SBATCH -A %s\n", conf_spec->grant);
     fprintf(output, "#SBATCH -p plgrid\n");
-    fprintf(output, "#SBATCH --output=\"%s_output.txt\"\n", filepath);
-    fprintf(output, "#SBATCH --error=\"%s_error.txt\"\n", filepath);
+    fprintf(output, "#SBATCH --output=\"%s_output.out\"\n", filepath);
+    fprintf(output, "#SBATCH --error=\"%s_error.err\"\n", filepath);
+    fprintf(output, "#SBATCH --comment=\"tag:%s\"\n", conf_spec->name);
     fprintf(output, "date\n");
     for (int i = 0; i < conf_spec->modules_number; i++)
     {

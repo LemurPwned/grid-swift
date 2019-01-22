@@ -29,7 +29,8 @@ int parse_parameter_list(const cJSON *parameter_list, PM_LIST pm_list[], int *pa
 {
     int iterator = 0;
     while (parameter_list)
-    {
+    {        
+        pm_list[iterator].plain = 0;
         cJSON *name = cJSON_GetObjectItemCaseSensitive(parameter_list, "name");
         if (name != NULL)
         {
@@ -39,32 +40,56 @@ int parse_parameter_list(const cJSON *parameter_list, PM_LIST pm_list[], int *pa
         {
             perror("{\"name\"} parameter not found in conf.json/parameter_list");
         }
-        cJSON *start = cJSON_GetObjectItemCaseSensitive(parameter_list, "start");
-        if (cJSON_IsNumber(start))
+        cJSON *type = cJSON_GetObjectItemCaseSensitive(parameter_list, "plain");
+        if ((type != NULL) && cJSON_IsBool(type) && cJSON_IsTrue(type))
         {
-            pm_list[iterator].start = start->valuedouble;
+            // is a type of plain list, just peel off the arguments
+            cJSON *list = cJSON_GetObjectItemCaseSensitive(parameter_list, "plain_list");
+            if ((list != NULL) && cJSON_IsArray(list)){
+                cJSON *item = NULL;
+                int c = 0;
+                cJSON_ArrayForEach(item, list){
+                    if ((item != NULL) && cJSON_IsNumber(item)){
+                        pm_list[iterator].plain_list[c] = item->valuedouble;
+                        c++;
+                    }
+                    else {
+                        perror("Invalid list element!\n");    
+                        exit(-1);
+                    }
+                }
+                pm_list[iterator].plain = c;                        
+            }
         }
         else
         {
-            perror("{\"start\"} parameter not found in conf.json/parameter_list");
-        }
-        cJSON *stop = cJSON_GetObjectItemCaseSensitive(parameter_list, "stop");
-        if (cJSON_IsNumber(stop))
-        {
-            pm_list[iterator].stop = stop->valuedouble;
-        }
-        else
-        {
-            perror("{\"stop\"} parameter not found in conf.json/parameter_list");
-        }
-        cJSON *step = cJSON_GetObjectItemCaseSensitive(parameter_list, "step");
-        if (cJSON_IsNumber(step))
-        {
-            pm_list[iterator].step = step->valuedouble;
-        }
-        else
-        {
-            perror("{\"step\"} parameter not found in conf.json/parameter_list");
+            cJSON *start = cJSON_GetObjectItemCaseSensitive(parameter_list, "start");
+            if (cJSON_IsNumber(start))
+            {
+                pm_list[iterator].start = start->valuedouble;
+            }
+            else
+            {
+                perror("{\"start\"} parameter not found in conf.json/parameter_list");
+            }
+            cJSON *stop = cJSON_GetObjectItemCaseSensitive(parameter_list, "stop");
+            if (cJSON_IsNumber(stop))
+            {
+                pm_list[iterator].stop = stop->valuedouble;
+            }
+            else
+            {
+                perror("{\"stop\"} parameter not found in conf.json/parameter_list");
+            }
+            cJSON *step = cJSON_GetObjectItemCaseSensitive(parameter_list, "step");
+            if (cJSON_IsNumber(step))
+            {
+                pm_list[iterator].step = step->valuedouble;
+            }
+            else
+            {
+                perror("{\"step\"} parameter not found in conf.json/parameter_list");
+            }
         }
         parameter_list = parameter_list->next;
         iterator++;
@@ -169,11 +194,18 @@ int oommf_config_reader(const char *config_file, OOMMF_CONFIG *o_conf)
         o_conf->parameter_number = param_length;
         for (int i = 0; i < param_length; i++)
         {
-            printf("%s: %g to %g by %g\n",
-                   o_conf->pm[i].param_name,
-                   o_conf->pm[i].start,
-                   o_conf->pm[i].stop,
-                   o_conf->pm[i].step);
+            if (!o_conf->pm[i].plain){
+                printf("%s: %g to %g by %g\n",
+                    o_conf->pm[i].param_name,
+                    o_conf->pm[i].start,
+                    o_conf->pm[i].stop,
+                    o_conf->pm[i].step);
+            }
+            else {
+                printf("%s: number: %d\n",
+                        o_conf->pm[i].param_name,
+                        o_conf->pm[i].plain);
+            }
         }
     }
     else
