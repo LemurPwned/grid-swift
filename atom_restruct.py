@@ -3,6 +3,7 @@ import sys
 import argparse
 import numpy as np
 from functools import reduce
+from collections import Counter
 
 class AtomRestruct:
     def __init__(self):
@@ -255,20 +256,90 @@ class AtomRestruct:
         poscar['restruct_lattice'] = lattice
         return poscar
 
+    def structure_generator(self, spec,
+                            cube_type='fcc', miller='111',
+                            lattice=[1.0, 1.0, 1.0]):
+        """
+        Assume that the structure given in the path_string is:
+        A1 n1 A2 n2 A3 n3 ...
+        where Ax is an atom, nx is the number of monolayers
+        """
+        cube = [
+            (0., 0., 0.), # 0
+            (0., 0., 1.), # 1
+            (0., 1., 0.), # 2 
+            (0., 1., 1.), # 3
+            (1., 0., 0.), # 4
+            (1., 0., 1.), # 5
+            (1., 1., 0.), # 6
+            (1., 1., 1.), # 7
+            (0, 0.5, 0.5),# 8
+            (1, 0.5, 0.5),# 9
+            (0.5, 0, 0.5),# 10
+            (0.5, 1, 0.5),# 11
+            (0.5, 0.5, 0),# 12
+            (0.5, 0.5, 1),# 13
+        ]
+        fcc_path_111 = [0,12,10,8]
+        path_len = len(fcc_path_111)
+        atoms = spec[::2]
+        atom_nums = list(map(lambda x: int(x), spec[1::2]))
+        atom_lay_dict = dict(zip(atoms, spec[1::2]))
+        result = []
+        if cube_type == 'fcc':
+            path = fcc_path_111
+            zshift = 0.01
+            current_z = 0
+            previous_z = 0
+            for i in range(sum(atom_nums)):
+                current_position_base = cube[path[i%path_len]]
+                result.append((
+                    current_position_base[0],
+                    current_position_base[1],
+                    zshift))
+                if (previous_z-current_position_base[2]) != 0:
+                    zshift += lattice[-1]*0.5
+                previous_z = current_position_base[2]
+        else:
+            raise ValueError(f"Argument cube type of {cube_type} is not supported.")
+
+        # # reduce the atoms and their numbers 
+        # atoms = Counter(atoms)
+
+        with open("/home/lemurpwned/POSCAR", 'w') as f:
+            f.write("TEST" + '\n')
+            f.write(f"     1.0\n")
+            f.write(f"       {lattice[0]} 0.0 0.0\n")
+            f.write(f"       0.0 {lattice[1]} 0.0\n")
+            f.write(f"       0.0 0.0 {lattice[2]*sum(atom_nums)}\n")
+            # f.write(f"    {' '.join(atom_lay_dict.keys())}\n")
+            # f.write(f"    {' '.join(atom_lay_dict.values())}\n")
+            f.write(f"    {' '.join(atoms)}\n")
+            f.write(f"    {' '.join(spec[1::2])}\n")
+            f.write('Direct\n')
+            for pos in result:
+                f.write("  {} {} {}\n".format(*pos))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Atom resturcturer')
-    parser.add_argument('source', type=str, help='source POSCAR file')
-    parser.add_argument('out', type=str, help='output POSCAR file')
+    parser.add_argument('--source', type=str, help='source POSCAR file')
+    parser.add_argument('--out', type=str, help='output POSCAR file')
     parser.add_argument('--infer', help='infer x, y coords',
                         action='store_true')
     parser.add_argument('-s', '--shift', help='shift vector in range [start, stop)',
                         nargs=2, type=int)
     parser.add_argument('--flat', help='flat display with coordinates',
                         action='store_true')
+    parser.add_argument('--path', help='path', nargs='*')
+    parser.add_argument('--lattice', help='lattice constants', nargs='*')
     args = parser.parse_args()
     print(args)
     ar = AtomRestruct()
+    if args.path:
+        lattice = [1, 1, 1] if not args.lattice else list(map(lambda x: float(x), args.lattice))
+        ar.structure_generator(spec=args.path, lattice=lattice)
+        quit()
     if args.flat:
         ar.print_lattice = ar.print_lattice_flat
     poscar = ar.read_poscar(args.source)
