@@ -258,11 +258,12 @@ class AtomRestruct:
 
     def structure_generator(self, spec,
                             cube_type='fcc', miller='111',
-                            lattice=[1.0, 1.0, 1.0]):
+                            lattice=[1.0, 1.0, 1.0],
+                            layer_spacing=None):
         """
         Assume that the structure given in the path_string is:
         A1 n1 A2 n2 A3 n3 ...
-        where Ax is an atom, nx is the number of monolayers
+        where Ax is an atom, nx is the number of atoms
         """
         cube = [
             (0., 0., 0.), # 0
@@ -291,14 +292,19 @@ class AtomRestruct:
             zshift = 0.01
             current_z = 0
             previous_z = 0
+            if layer_spacing is None:
+                layer_spacing = 3*lattice[-1]/sum(atom_nums) # *2 because 2 atoms per layer
+                lattice_spacing_z = layer_spacing/lattice[-1]
+            else:
+                lattice_spacing_z = float(layer_spacing[0])
             for i in range(sum(atom_nums)):
                 current_position_base = cube[path[i%path_len]]
+                if (previous_z-current_position_base[2]) != 0:
+                    zshift += lattice_spacing_z*0.5
                 result.append((
                     current_position_base[0],
                     current_position_base[1],
                     zshift))
-                if (previous_z-current_position_base[2]) != 0:
-                    zshift += lattice[-1]*0.5
                 previous_z = current_position_base[2]
         else:
             raise ValueError(f"Argument cube type of {cube_type} is not supported.")
@@ -311,7 +317,7 @@ class AtomRestruct:
             f.write(f"     1.0\n")
             f.write(f"       {lattice[0]} 0.0 0.0\n")
             f.write(f"       0.0 {lattice[1]} 0.0\n")
-            f.write(f"       0.0 0.0 {lattice[2]*sum(atom_nums)}\n")
+            f.write(f"       0.0 0.0 {lattice[2]}\n")
             # f.write(f"    {' '.join(atom_lay_dict.keys())}\n")
             # f.write(f"    {' '.join(atom_lay_dict.values())}\n")
             f.write(f"    {' '.join(atoms)}\n")
@@ -333,12 +339,13 @@ if __name__ == "__main__":
                         action='store_true')
     parser.add_argument('--path', help='path', nargs='*')
     parser.add_argument('--lattice', help='lattice constants', nargs='*')
+    parser.add_argument('--spacing', help='lattice constants', nargs='*')
     args = parser.parse_args()
     print(args)
     ar = AtomRestruct()
     if args.path:
         lattice = [1, 1, 1] if not args.lattice else list(map(lambda x: float(x), args.lattice))
-        ar.structure_generator(spec=args.path, lattice=lattice)
+        ar.structure_generator(spec=args.path, lattice=lattice, layer_spacing=args.spacing)
         quit()
     if args.flat:
         ar.print_lattice = ar.print_lattice_flat
