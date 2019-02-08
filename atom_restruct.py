@@ -276,7 +276,7 @@ class AtomRestruct:
 
 
     def transform_coordinates(self, coord_set, theta, phi):
-        return [3.92*rot_matrix_x(phi)@rot_matrix_z(theta)@np.array(coord) 
+        return [rot_matrix_x(phi)@rot_matrix_z(theta)@np.array(coord) 
                 for coord in coord_set]
 
     def structure_generator(self, spec,
