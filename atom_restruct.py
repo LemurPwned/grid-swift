@@ -28,6 +28,11 @@ class AtomRestruct:
         self.regex = '\W+'
         self.lattice_subregex = '(-?[0-9]+\.?[0-9]+e?-?[0-9]*)'
         self.print_lattice = self.print_lattice_space
+        self.lattice_constants = {
+            "Pt": (3.92, 3.92, 3.92, 'fcc'),
+            "Co": (3.5447,3.5447, 3.5447, 'fcc'),
+            "Co2": (2.50, 2.50, 4.695, 'hcp')
+        }
 
     def save_poscar(self, filename, poscar):
         # group lattice
@@ -281,8 +286,7 @@ class AtomRestruct:
 
     def structure_generator(self, spec,
                             cube_type='fcc', miller='111',
-                            lattice=[1.0, 1.0, 1.0],
-                            theta=0,
+                            theta=np.pi/4,
                             phi=np.arctan(np.sqrt(2))):
         """
         Assume that the structure given in the path_string is:
@@ -305,54 +309,77 @@ class AtomRestruct:
             (0.5, 0.5, 0),# 12
             (0.5, 0.5, 1),# 13
         ]
+        """
         # inteplane distance => 1/d^2 = (h+k+l)/a^2
         # d = a*sqrt(3)/3
-        plane_spacing = lattice[2]*np.sqrt(3)/3
-        lattice = np.array(lattice)
+        transform the coordinate system to obtain the plane centering around z axis
+        """
         new_coords = self.transform_coordinates(cube, theta, phi)
-        fcc_111_planes = [[0],[1,4,2,8,10,12],[5,3,6,9,11,13], [7]]
+        """
+        # fcc_111_planes = [[0],[1,4,2,8,10,12],[5,3,6,9,11,13], [7]]
+        [7] is not included as a plane because it's equivalent ot the [0] plane 
+        in the neighbouring cell
+        """
+        fcc_111_planes = [[0],[1,4,2,8,10,12],[5,3,6,9,11,13]] 
         path_len = len(fcc_111_planes)
         atoms = spec[::2]
         planes = list(map(lambda x: int(x), spec[1::2]))
         result = []
         atm_str = ''
         num_str = ''
+        meta_lattice  = 3.92
+        # meta lattice is the max lattice of all
+        meta_lattice = np.max([self.lattice_constants[atom][0] for atom in atoms])
+        print(f"Meta lattice is {meta_lattice} Å")
         if cube_type == 'fcc':
             zshift = 0.0
             i = 0
+            atm_cnt = 0
             res_dict = {}
             for atom, monolayers in zip(atoms, planes):
                 current_atom_num = 0
                 for monolayer in range(monolayers):
                     current_plane = fcc_111_planes[i%path_len]
                     current_atom_num += len(current_plane) # number of atoms in the current_plane
+                    try:
+                        current_lattice_constants = np.array(self.lattice_constants[atom][:3])
+                        # this should be the cuboid spacing
+                        plane_spacing = current_lattice_constants[2]*np.sqrt(3)/3 
+                        # modify plane spacing if we are at the interface (don't take 0, always resolve for monolayers-1)
+                        if monolayer == monolayers-1:
+                            foreign_spacing = self.lattice_constants[atoms[atm_cnt-1]][2]*np.sqrt(3)/3
+                            # take the mean
+                            plane_spacing = (plane_spacing + foreign_spacing)/2
+                            print(f"Calculated interface spacing: {atoms[atm_cnt-1]}/{atoms[atm_cnt]} Å",
+                                f"as mean: {np.around(foreign_spacing, decimals=3)} Å,{np.around(plane_spacing, decimals=3)} Å")
+                    except KeyError:
+                        raise ValueError(f"Lattice constants for {atom} not found!")
                     for position in current_plane:
                         current_position_base = new_coords[position]
                         result.append((
-                            *(current_position_base[:2] + np.array([2., 2.])).tolist(),
+                            *(current_position_base[:2]*current_lattice_constants[:2]/2
+                            -np.array([meta_lattice, meta_lattice])/2
+                            ).tolist() ,
                             zshift
                         ))
                     i += 1
                     zshift += plane_spacing # separate each monolayer
-                # res_dict[atom] = current_atom_num # save atom, monolayer pair
                 atm_str += atom + ' '
                 num_str += str(current_atom_num) + ' '
-                
+                atm_cnt += 1
         else:
             raise ValueError(f"Argument cube type of {cube_type} is not supported.")
 
         # # reduce the atoms and their numbers 
         # atoms = Counter(atoms)
         total_atoms = sum(res_dict.values())
+        lattice = [3.92, 3.92]
         with open("/home/lemurpwned/POSCAR", 'w') as f:
-            f.write("TEST" + '\n')
+            f.write(f"{''.join(spec)}" + '\n')
             f.write(f"     1.0\n")
             f.write(f"       {lattice[0]} 0.0 0.0\n")
             f.write(f"       0.0 {lattice[1]} 0.0\n")
             f.write(f"       0.0 0.0 {zshift}\n")
-            # for key in res_dict:
-            #     atm_str += key + ' '
-            #     num_str += str(res_dict[key]) + ' '
             f.write(f"      {atm_str}\n")
             f.write(f"      {num_str}\n")
             f.write('Cart\n')
@@ -371,14 +398,11 @@ if __name__ == "__main__":
     parser.add_argument('--flat', help='flat display with coordinates',
                         action='store_true')
     parser.add_argument('--path', help='path', nargs='*')
-    parser.add_argument('--lattice', help='lattice constants', nargs='*')
-    # parser.add_argument('--angles', help='rotation angles', nargs='2')
     args = parser.parse_args()
     print(args)
     ar = AtomRestruct()
     if args.path:
-        lattice = [1, 1, 1] if not args.lattice else list(map(lambda x: float(x), args.lattice))
-        ar.structure_generator(spec=args.path, lattice=lattice)
+        ar.structure_generator(spec=args.path)
         quit()
     if args.flat:
         ar.print_lattice = ar.print_lattice_flat
