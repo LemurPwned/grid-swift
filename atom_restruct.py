@@ -31,7 +31,7 @@ class AtomRestruct:
         self.print_lattice = self.print_lattice_space
         self.lattice_constants = {
             "Pt": (3.92, 3.92, 3.92, 'fcc'),
-            "Co": (3.5447,3.5447, 3.5447, 'fcc'),
+            "Co": (3.5447, 3.5447, 3.5447, 'fcc'),
             "Co2": (2.50, 2.50, 4.695, 'hcp')
         }
 
@@ -318,17 +318,14 @@ class AtomRestruct:
         new_coords = self.transform_coordinates(cube, theta, phi)
         """
         # fcc_111_planes = [[0],[1,4,2,8,10,12],[5,3,6,9,11,13], [7]]
-        [7] is not included as a plane because it's equivalent ot the [0] plane 
+        [7] is not included as a plane because it's equivalent to the [0] plane 
         in the neighbouring cell
         """
         fcc_111_planes = [[0],[1,4,2,8,10,12],[5,3,6,9,11,13]] 
         path_len = len(fcc_111_planes)
         atoms = spec[::2]
         planes = list(map(lambda x: int(x), spec[1::2]))
-        result = []
-        atm_str = ''
-        num_str = ''
-        meta_lattice  = 3.92
+        atom_listing = {atom: [] for atom in atoms}
         # meta lattice is the max lattice of all
         meta_lattice = np.max([self.lattice_constants[atom][0] for atom in atoms])
         print(f"Meta lattice is {meta_lattice} Å")
@@ -336,7 +333,6 @@ class AtomRestruct:
             zshift = 0.0
             i = 0
             atm_cnt = 0
-            res_dict = {}
             for atom, monolayers in zip(atoms, planes):
                 current_atom_num = 0
                 for monolayer in range(monolayers):
@@ -357,36 +353,37 @@ class AtomRestruct:
                         raise ValueError(f"Lattice constants for {atom} not found!")
                     for position in current_plane:
                         current_position_base = new_coords[position]
-                        result.append((
+                        atom_listing[atom].append(
+                            (
                             *(current_position_base[:2]*current_lattice_constants[:2]/2
                             -np.array([meta_lattice, meta_lattice])/2
                             ).tolist() ,
                             zshift
-                        ))
+                        )
+                        )
                     i += 1
                     zshift += plane_spacing # separate each monolayer
-                atm_str += atom + ' '
-                num_str += str(current_atom_num) + ' '
                 atm_cnt += 1
         else:
             raise ValueError(f"Argument cube type of {cube_type} is not supported.")
 
-        # # reduce the atoms and their numbers 
-        # atoms = Counter(atoms)
-        total_atoms = sum(res_dict.values())
-        lattice = [3.92, 3.92]
         filepath = os.path.join(out, 'POSCAR')
+        # reduce the atoms and their number
+        key_order = atom_listing.keys()
+        atm_str = ' '.join(key_order) 
+        num_str = ' '.join([str(len(atom_listing[key])) for key in key_order]) 
         with open(filepath, 'w') as f:
             f.write(f"{''.join(spec)}" + '\n')
             f.write(f"     1.0\n")
-            f.write(f"       {lattice[0]} 0.0 0.0\n")
-            f.write(f"       0.0 {lattice[1]} 0.0\n")
+            f.write(f"       {meta_lattice} 0.0 0.0\n")
+            f.write(f"       0.0 {meta_lattice} 0.0\n")
             f.write(f"       0.0 0.0 {zshift}\n")
             f.write(f"      {atm_str}\n")
             f.write(f"      {num_str}\n")
             f.write('Cart\n')
-            for pos in result:
-                f.write("  {} {} {}\n".format(*pos))
+            for key in atom_listing: # this ensures atoms are in order
+                for pos in atom_listing[key]:
+                    f.write("  {} {} {}\n".format(*pos))
 
 
 if __name__ == "__main__":
