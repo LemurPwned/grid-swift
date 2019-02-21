@@ -30,7 +30,7 @@ class AtomRestruct:
         self.print_lattice = self.print_lattice_space
         self.lattice_constants = {
             "Pt": (3.92, 3.92, 3.92, 'fcc'),
-            "Co": (3.5447,3.5447, 3.5447, 'fcc'),
+            "Co": (3.5447, 3.5447, 3.5447, 'fcc'),
             "Co2": (2.50, 2.50, 4.695, 'hcp')
         }
 
@@ -325,6 +325,7 @@ class AtomRestruct:
         atoms = spec[::2]
         planes = list(map(lambda x: int(x), spec[1::2]))
         result = []
+        atom_listing = {atom: [] for atom in atoms}
         atm_str = ''
         num_str = ''
         meta_lattice  = 3.92
@@ -335,7 +336,6 @@ class AtomRestruct:
             zshift = 0.0
             i = 0
             atm_cnt = 0
-            res_dict = {}
             for atom, monolayers in zip(atoms, planes):
                 current_atom_num = 0
                 for monolayer in range(monolayers):
@@ -362,6 +362,14 @@ class AtomRestruct:
                             ).tolist() ,
                             zshift
                         ))
+                        atom_listing[atom].append(
+                            (
+                            *(current_position_base[:2]*current_lattice_constants[:2]/2
+                            -np.array([meta_lattice, meta_lattice])/2
+                            ).tolist() ,
+                            zshift
+                        )
+                        )
                     i += 1
                     zshift += plane_spacing # separate each monolayer
                 atm_str += atom + ' '
@@ -370,21 +378,25 @@ class AtomRestruct:
         else:
             raise ValueError(f"Argument cube type of {cube_type} is not supported.")
 
-        # # reduce the atoms and their numbers 
-        # atoms = Counter(atoms)
-        total_atoms = sum(res_dict.values())
-        lattice = [3.92, 3.92]
+        # # reduce the atoms and their number
+        # atoms = Counter(s_res)
+        key_order = atom_listing.keys()
+        atm_str = ' '.join(key_order) 
+        num_str = ' '.join([str(len(atom_listing[key])) for key in key_order]) 
         with open("/home/lemurpwned/POSCAR", 'w') as f:
             f.write(f"{''.join(spec)}" + '\n')
             f.write(f"     1.0\n")
-            f.write(f"       {lattice[0]} 0.0 0.0\n")
-            f.write(f"       0.0 {lattice[1]} 0.0\n")
+            f.write(f"       {meta_lattice} 0.0 0.0\n")
+            f.write(f"       0.0 {meta_lattice} 0.0\n")
             f.write(f"       0.0 0.0 {zshift}\n")
             f.write(f"      {atm_str}\n")
             f.write(f"      {num_str}\n")
             f.write('Cart\n')
-            for pos in result:
-                f.write("  {} {} {}\n".format(*pos))
+            # for pos in result:
+            #     f.write("  {} {} {}\n".format(*pos))
+            for key in atom_listing:
+                for pos in atom_listing[key]:
+                    f.write("  {} {} {}\n".format(*pos))
 
 
 if __name__ == "__main__":
