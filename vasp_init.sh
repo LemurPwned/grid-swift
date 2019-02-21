@@ -60,6 +60,8 @@ cp $ELECTRON_RELAX/CHGCAR $NON_COLINEAR
 
 # for non-colinear create kpoints path
 sed -i -r -e 's/ICHARG\s+=\s+[0-9]+/ICHARG = 11/g' -e 's/NSW\s+=\s+[0-9]+/NSW = 0/g' $NON_COLINEAR/INCAR 
+
+module load plgrid/tools/python/3.6.0
 python3 $GRID_SWIFT/vasp_kpoints.py -s $NON_COLINEAR -p GHNGP
 
 cd $NON_COLINEAR

@@ -1,5 +1,6 @@
 import re
 import sys
+import os
 import argparse
 import numpy as np
 from functools import reduce
@@ -284,7 +285,7 @@ class AtomRestruct:
         return [rot_matrix_x(phi)@rot_matrix_z(theta)@np.array(coord) 
                 for coord in coord_set]
 
-    def structure_generator(self, spec,
+    def structure_generator(self, spec, out,
                             cube_type='fcc', miller='111',
                             theta=np.pi/4,
                             phi=np.arctan(np.sqrt(2))):
@@ -374,7 +375,8 @@ class AtomRestruct:
         # atoms = Counter(atoms)
         total_atoms = sum(res_dict.values())
         lattice = [3.92, 3.92]
-        with open("/home/lemurpwned/POSCAR", 'w') as f:
+        filepath = os.path.join(out, 'POSCAR')
+        with open(filepath, 'w') as f:
             f.write(f"{''.join(spec)}" + '\n')
             f.write(f"     1.0\n")
             f.write(f"       {lattice[0]} 0.0 0.0\n")
@@ -402,7 +404,9 @@ if __name__ == "__main__":
     print(args)
     ar = AtomRestruct()
     if args.path:
-        ar.structure_generator(spec=args.path)
+        if args.out is None:
+            raise ValueError("Invalid output path for POSCAR specified")
+        ar.structure_generator(spec=args.path, out=args.out)
         quit()
     if args.flat:
         ar.print_lattice = ar.print_lattice_flat
