@@ -326,8 +326,9 @@ class AtomRestruct:
         atoms = spec[::2]
         planes = list(map(lambda x: int(x), spec[1::2]))
         atom_listing = {atom: [] for atom in atoms}
+        result = []
         # meta lattice is the max lattice of all
-        meta_lattice = np.max([self.lattice_constants[atom][0] for atom in atoms])
+        meta_lattice = np.max([self.lattice_constants[atom][0] for atom in atoms])*2
         print(f"Meta lattice is {meta_lattice} Å")
         if cube_type == 'fcc':
             zshift = 0.0
@@ -355,7 +356,15 @@ class AtomRestruct:
                         current_position_base = new_coords[position]
                         atom_listing[atom].append(
                             (
-                            *(current_position_base[:2]*current_lattice_constants[:2]/2
+                            *(current_position_base[:2]*current_lattice_constants[:2]
+                            -np.array([meta_lattice, meta_lattice])/2
+                            ).tolist() ,
+                            zshift
+                        )
+                        )
+                        result.append(
+                            (
+                            *(current_position_base[:2]*current_lattice_constants[:2]
                             -np.array([meta_lattice, meta_lattice])/2
                             ).tolist() ,
                             zshift
