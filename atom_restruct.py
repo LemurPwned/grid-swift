@@ -288,7 +288,8 @@ class AtomRestruct:
     def structure_generator(self, spec, out,
                             cube_type='fcc', miller='111',
                             theta=np.pi/4,
-                            phi=np.arctan(np.sqrt(2))):
+                            phi=np.arctan(np.sqrt(2)),
+                            shift=0):
         """
         Assume that the structure given in the path_string is:
         A1 n1 A2 n2 A3 n3 ...
@@ -331,7 +332,7 @@ class AtomRestruct:
         meta_lattice = np.max([self.lattice_constants[atom][0] for atom in atoms])*2
         print(f"Meta lattice is {meta_lattice} Å")
         if cube_type == 'fcc':
-            zshift = 0.0
+            zshift = 0.0 if shift is None else shift
             i = 0
             atm_cnt = 0
             for atom, monolayers in zip(atoms, planes):
@@ -403,6 +404,7 @@ if __name__ == "__main__":
                         action='store_true')
     parser.add_argument('-s', '--shift', help='shift vector in range [start, stop)',
                         nargs=2, type=int)
+    parser.add_argument('--offset', help='offset in z dim for structure builder', type=float)
     parser.add_argument('--flat', help='flat display with coordinates',
                         action='store_true')
     parser.add_argument('--path', help='path', nargs='*')
@@ -412,7 +414,7 @@ if __name__ == "__main__":
     if args.path:
         if args.out is None:
             raise ValueError("Invalid output path for POSCAR specified")
-        ar.structure_generator(spec=args.path, out=args.out)
+        ar.structure_generator(spec=args.path, out=args.out, shift=args.offset)
         quit()
     if args.flat:
         ar.print_lattice = ar.print_lattice_flat
