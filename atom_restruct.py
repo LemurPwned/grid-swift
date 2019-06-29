@@ -30,8 +30,8 @@ class AtomRestruct:
         self.lattice_subregex = '(-?[0-9]+\.?[0-9]+e?-?[0-9]*)'
         self.print_lattice = self.print_lattice_space
         self.lattice_constants = {
-            "Pt": (3.92, 3.92, 3.92, 'fcc'),
-            "Co": (3.5447, 3.5447, 3.5447, 'fcc'),
+            "Pt": (3.92*0.95, 3.92*0.95, 3.92*0.95, 'fcc'),
+            "Co": (3.5447*1.05, 3.5447*1.05, 3.5447*1.05, 'fcc'),
             "Co2": (2.50, 2.50, 4.695, 'hcp')
         }
 
@@ -282,7 +282,7 @@ class AtomRestruct:
 
 
     def transform_coordinates(self, coord_set, theta, phi):
-        return [rot_matrix_x(phi)@rot_matrix_z(theta)@np.array(coord) 
+        return [rot_matrix_x(phi)@rot_matrix_z(theta)@np.array(coord)
                 for coord in coord_set]
 
     def structure_generator(self, spec, out,
@@ -298,7 +298,7 @@ class AtomRestruct:
         cube = [
             (0., 0., 0.), # 0
             (0., 0., 1.), # 1
-            (0., 1., 0.), # 2 
+            (0., 1., 0.), # 2
             (0., 1., 1.), # 3
             (1., 0., 0.), # 4
             (1., 0., 1.), # 5
@@ -310,6 +310,13 @@ class AtomRestruct:
             (0.5, 1, 0.5),# 11
             (0.5, 0.5, 0),# 12
             (0.5, 0.5, 1),# 13
+            # second cube
+            (0.5, -0.5, 0),# 14,
+            (-0.5, 0.5, 0),# 15
+            (0., 0.5, -0.5),# 16
+            (0.5, 0., -0.5),# 17
+            (0., -0.5, 0.5),# 18
+            (-0.5, 0., 0.5),# 19
         ]
         """
         # inteplane distance => 1/d^2 = (h+k+l)/a^2
@@ -318,11 +325,13 @@ class AtomRestruct:
         """
         new_coords = self.transform_coordinates(cube, theta, phi)
         """
+        # fcc_111_multicube_plane = [[0, 14, 15],[1,4,2,8,10,12],[5,3,6,9,11,13], [7]]
         # fcc_111_planes = [[0],[1,4,2,8,10,12],[5,3,6,9,11,13], [7]]
-        [7] is not included as a plane because it's equivalent to the [0] plane 
+        [7] is not included as a plane because it's equivalent to the [0] plane
         in the neighbouring cell
         """
-        fcc_111_planes = [[0],[1,4,2,8,10,12],[5,3,6,9,11,13]] 
+        # fcc_111_planes = [[0],[1,4,2,8,10,12],[5,3,6,9,11,13]]
+        fcc_111_planes = [[0, 14, 15, 16, 17, 18, 19],[1,4,2,8,10,12],[5,3,6,9,11,13]]
         path_len = len(fcc_111_planes)
         atoms = spec[::2]
         planes = list(map(lambda x: int(x), spec[1::2]))
@@ -343,26 +352,26 @@ class AtomRestruct:
                     try:
                         current_lattice_constants = np.array(self.lattice_constants[atom][:3])
                         # this should be the cuboid spacing
-                        plane_spacing = current_lattice_constants[2]*np.sqrt(3)/3 
+                        plane_spacing = current_lattice_constants[2]*np.sqrt(3)/3
                         # modify plane spacing if we are at the interface (don't take 0, always resolve for monolayers-1)
                         if monolayer == monolayers-1:
                             foreign_spacing = self.lattice_constants[atoms[atm_cnt-1]][2]*np.sqrt(3)/3
                             # take the mean
                             plane_spacing = (plane_spacing + foreign_spacing)/2
                             print(f"Calculated interface spacing: {atoms[atm_cnt-1]}/{atoms[atm_cnt]} Å",
-                                f"as mean: {np.around(foreign_spacing, decimals=3)} Å,{np.around(plane_spacing, decimals=3)} Å")
+                                f"as mean: {np.around(foreign_spacing, decimals=3)} Å, {np.around(plane_spacing, decimals=3)} Å")
                     except KeyError:
                         raise ValueError(f"Lattice constants for {atom} not found!")
                     for position in current_plane:
                         current_position_base = new_coords[position]
+                        # for direction in []
                         atom_listing[atom].append(
                             (
                             *(current_position_base[:2]*current_lattice_constants[:2]
                             -np.array([meta_lattice, meta_lattice])/2
                             ).tolist() ,
                             zshift
-                        )
-                        )
+                        ))
                         result.append(
                             (
                             *(current_position_base[:2]*current_lattice_constants[:2]
@@ -380,8 +389,8 @@ class AtomRestruct:
         filepath = os.path.join(out, 'POSCAR')
         # reduce the atoms and their number
         key_order = atom_listing.keys()
-        atm_str = ' '.join(key_order) 
-        num_str = ' '.join([str(len(atom_listing[key])) for key in key_order]) 
+        atm_str = ' '.join(key_order)
+        num_str = ' '.join([str(len(atom_listing[key])) for key in key_order])
         with open(filepath, 'w') as f:
             f.write(f"{''.join(spec)}" + '\n')
             f.write(f"     1.0\n")
@@ -412,7 +421,7 @@ if __name__ == "__main__":
     print(args)
     ar = AtomRestruct()
     if args.path:
-        if args.out is None:
+        if args.out is None or (not os.path.isdir(args.out)):
             raise ValueError("Invalid output path for POSCAR specified")
         ar.structure_generator(spec=args.path, out=args.out, shift=args.offset)
         quit()
