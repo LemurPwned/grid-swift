@@ -312,16 +312,20 @@ class AtomRestruct:
         print(f"PATH LEN {path_len}, PLANES: {planes}")
         i = 0
         atm_cnt = 0
+        result = []
+        atom_order = []
         atom_listing = {atom: [] for atom in atoms}
         meta_lattice = np.max([self.lattice_constants[atom][0]
                                for atom in atoms])
         print(f"Meta lattice is {meta_lattice} Å")
         for atom, monolayers in zip(atoms, planes):
             current_atom_num = 0
+            atoms_in_layer = 0
             for monolayer in range(monolayers):
                 current_plane = direct_planes[i % path_len]
                 # number of atoms in the current_plane
                 current_atom_num += len(current_plane)
+                atoms_in_layer += len(current_plane)
                 try:
                     current_lattice_constants = np.array(
                         self.lattice_constants[atom][:3])
@@ -346,14 +350,23 @@ class AtomRestruct:
                             *(current_position_base[:2]),
                             zshift
                         ))
+                    result.append(
+                        (
+                            *(current_position_base[:2]),
+                            zshift
+                        ))
                 i += 1
                 zshift += plane_spacing  # separate each monolayer
+            atom_order.append((atom, atoms_in_layer))
             atm_cnt += 1
         filepath = os.path.join(out, 'POSCAR')
         # reduce the atoms and their number
         key_order = atom_listing.keys()
-        atm_str = ' '.join(key_order)
-        num_str = ' '.join([str(len(atom_listing[key])) for key in key_order])
+        print(atom_order)
+        # atm_str = ' '.join(key_order)
+        # num_str = ' '.join([str(len(atom_listing[key])) for key in key_order])
+        atm_str = ' '.join([atm[0] for atm in atom_order])
+        num_str = ' '.join([str(atm[1]) for atm in atom_order])
         print(f"Result saved in {filepath}")
         with open(filepath, 'w') as f:
             f.write(f"{''.join(spec)}" + '\n')
@@ -364,9 +377,11 @@ class AtomRestruct:
             f.write(f"      {atm_str}\n")
             f.write(f"      {num_str}\n")
             f.write('Dir\n')
-            for key in atom_listing:  # this ensures atoms are in order
-                for pos in atom_listing[key]:
-                    f.write("  {} {} {}\n".format(*pos[:2], pos[2]/zshift))
+            for pos in result:
+                f.write("  {} {} {}\n".format(*pos[:2], pos[2]/zshift))
+            # for key in atom_listing:  # this ensures atoms are in order
+            #     for pos in atom_listing[key]:
+                    # f.write("  {} {} {}\n".format(*pos[:2], pos[2]/zshift))
 
     def structure_generator(self, spec, out,
                             cube_type='fcc', miller='111',
